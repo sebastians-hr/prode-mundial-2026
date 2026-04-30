@@ -8,12 +8,12 @@
 // ============================================================
 
 const firebaseConfig = {
-  apiKey: "REEMPLAZAR_AQUI",
-  authDomain: "REEMPLAZAR_AQUI.firebaseapp.com",
-  projectId: "REEMPLAZAR_AQUI",
-  storageBucket: "REEMPLAZAR_AQUI.appspot.com",
-  messagingSenderId: "REEMPLAZAR_AQUI",
-  appId: "REEMPLAZAR_AQUI"
+  apiKey: "AIzaSyCq5_wwdc7lipXPqaH6_CYZSIUEFj81yBI",
+  authDomain: "prode-mundial-26.firebaseapp.com",
+  projectId: "prode-mundial-26",
+  storageBucket: "prode-mundial-26.firebasestorage.app",
+  messagingSenderId: "112140770068",
+  appId: "1:112140770068:web:7c364985a7a4f05b3b0001"
 };
 
 // Lista de jugadores (los 16)
