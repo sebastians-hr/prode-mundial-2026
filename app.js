@@ -2,11 +2,6 @@
 // PRODE MUNDIAL 26 · FORO!
 // ============================================================
 
-// ⚠️ CONFIGURACIÓN DE FIREBASE
-// Reemplazá este objeto con la config de tu proyecto Firebase
-// (más detalles en INSTRUCCIONES-FIREBASE.md)
-// ============================================================
-
 const firebaseConfig = {
   apiKey: "AIzaSyCq5_wwdc7lipXPqaH6_CYZSIUEFj81yBI",
   authDomain: "prode-mundial-26.firebaseapp.com",
@@ -16,7 +11,6 @@ const firebaseConfig = {
   appId: "1:112140770068:web:7c364985a7a4f05b3b0001"
 };
 
-// Lista de jugadores (los 16)
 const JUGADORES_INICIALES = [
   'Sebastián Suez','Dario Vulpes','Alexis Wolff','Axel Meunier',
   'Felix Llambias','Inda Videla','Ivan Kerchen','Lucas Pistoia',
@@ -24,22 +18,11 @@ const JUGADORES_INICIALES = [
   'Santi Teitel','Walter Korn','Zucho Ramos Mejia','~Du'
 ];
 
-// Clave de admin (cambiala antes de subir)
 const ADMIN_PASSWORD = 'sebasuez26';
-
-// Mercado Pago link directo
 const MP_LINK = 'https://link.mercadopago.com.ar/sebastiansuez';
-// Si querés mandar a la búsqueda del alias en MP:
-// 'mercadopago://transfer?alias=sebastiansuez.mp'
-
-// Pozo
 const POZO_TOTAL = 800000;
 const ENTRADA = 50000;
 const FICHAS_INICIALES = 104;
-
-// ============================================================
-// IMPORTS DE FIREBASE (módulos ESM, sin instalación)
-// ============================================================
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
 import {
@@ -52,12 +35,8 @@ try {
   firebaseApp = initializeApp(firebaseConfig);
   db = getFirestore(firebaseApp);
 } catch(e) {
-  console.warn('Firebase no inicializado todavía (probablemente falta config):', e);
+  console.warn('Firebase no inicializado:', e);
 }
-
-// ============================================================
-// EQUIPOS
-// ============================================================
 
 const EQUIPOS = {
   MEX:{n:'México',f:'🇲🇽'}, RSA:{n:'Sudáfrica',f:'🇿🇦'}, KOR:{n:'Corea Sur',f:'🇰🇷'}, CZE:{n:'Chequia',f:'🇨🇿'},
@@ -74,15 +53,7 @@ const EQUIPOS = {
   ENG:{n:'Inglaterra',f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿'}, CRO:{n:'Croacia',f:'🇭🇷'}, GHA:{n:'Ghana',f:'🇬🇭'}, PAN:{n:'Panamá',f:'🇵🇦'}
 };
 
-// ============================================================
-// FIXTURE COMPLETO
-// Formato: [id, fecha, hora_arg, local, visit, fase, grupo, cuotaL, cuotaE, cuotaV]
-// ============================================================
-// Cuotas pre-cargadas son aproximaciones de mercado para el primer set
-// El admin puede actualizarlas con el modo árbitro
-
 const FIXTURE = [
-  // === FASE GRUPOS - JORNADA 1 ===
   ['M1','11/06','16:00','MEX','RSA','grupos','A',1.85,3.40,4.50],
   ['M2','11/06','23:00','KOR','CZE','grupos','A',2.30,3.10,3.20],
   ['M3','12/06','19:00','CAN','BIH','grupos','B',1.95,3.30,4.00],
@@ -99,7 +70,6 @@ const FIXTURE = [
   ['M14','15/06','13:00','ESP','CPV','grupos','H',1.20,6.00,12.00],
   ['M15','15/06','16:00','BEL','IRN','grupos','G',1.65,3.80,5.20],
   ['M16','15/06','22:00','NZL','EGY','grupos','G',4.50,3.30,1.80],
-  // === JORNADA 2 ===
   ['M17','16/06','14:00','AUT','JOR','grupos','J',1.50,4.00,6.50],
   ['M18','16/06','18:00','FRA','SEN','grupos','I',1.65,3.80,5.00],
   ['M19','16/06','21:00','IRQ','NOR','grupos','I',5.50,3.60,1.65],
@@ -132,7 +102,6 @@ const FIXTURE = [
   ['M45','24/06','17:00','CRO','GHA','grupos','L',1.65,3.80,5.00],
   ['M46','24/06','19:00','PAN','ENG','grupos','L',6.50,3.80,1.50],
   ['M47','24/06','23:00','COL','COD','grupos','K',1.50,4.10,6.50],
-  // === JORNADA 3 ===
   ['M48','25/06','22:00','CZE','MEX','grupos','A',3.20,3.10,2.30],
   ['M49','25/06','22:00','RSA','KOR','grupos','A',3.20,3.20,2.25],
   ['M50','26/06','22:00','TUR','USA','grupos','D',3.00,3.20,2.40],
@@ -157,7 +126,6 @@ const FIXTURE = [
   ['M69','01/07','22:00','JOR','ARG','grupos','J',9.00,5.00,1.30],
   ['M70','01/07','15:00','NOR','FRA','grupos','I',2.80,3.30,2.50],
   ['M71','01/07','15:00','SEN','IRQ','grupos','I',1.45,4.00,7.50],
-  // === KNOCKOUT (placeholders) ===
   ['M72','03/07','14:00','?A2','?B2','r32','-',2.10,3.20,3.30],
   ['M73','03/07','17:00','?E1','?3F','r32','-',1.80,3.40,4.20],
   ['M74','04/07','14:00','?F1','?C2','r32','-',2.00,3.30,3.50],
@@ -174,7 +142,6 @@ const FIXTURE = [
   ['M85','08/07','14:00','?I2','?L2','r32','-',2.10,3.20,3.30],
   ['M86','08/07','17:00','?J2','?K2','r32','-',2.05,3.20,3.40],
   ['M87','08/07','21:00','?E2','?I2b','r32','-',2.10,3.20,3.30],
-  // R16
   ['M88','11/07','14:00','?W72','?W73','r16','-',2.00,3.30,3.50],
   ['M89','11/07','17:00','?W74','?W75','r16','-',2.00,3.30,3.50],
   ['M90','12/07','14:00','?W76','?W77','r16','-',2.00,3.30,3.50],
@@ -183,52 +150,36 @@ const FIXTURE = [
   ['M93','13/07','17:00','?W82','?W83','r16','-',2.00,3.30,3.50],
   ['M94','14/07','14:00','?W84','?W85','r16','-',2.00,3.30,3.50],
   ['M95','14/07','17:00','?W86','?W87','r16','-',2.00,3.30,3.50],
-  // QF
   ['M96','17/07','17:00','?W88','?W89','qf','-',2.10,3.30,3.30],
   ['M97','17/07','21:00','?W90','?W91','qf','-',2.10,3.30,3.30],
   ['M98','18/07','17:00','?W92','?W93','qf','-',2.10,3.30,3.30],
   ['M99','18/07','21:00','?W94','?W95','qf','-',2.10,3.30,3.30],
-  // SF
   ['M100','22/07','17:00','?W96','?W97','sf','-',2.20,3.20,3.10],
   ['M101','22/07','21:00','?W98','?W99','sf','-',2.20,3.20,3.10],
-  // 3° y FINAL
   ['M102','25/07','17:00','?L100','?L101','final','3°',2.20,3.20,3.10],
   ['M103','26/07','17:00','?W100','?W101','final','FINAL',2.30,3.20,3.00]
 ];
 
-console.log(`Fixture cargado: ${FIXTURE.length} partidos`);
-
-// ============================================================
-// ESTADO GLOBAL
-// ============================================================
-
+console.log(`Fixture: ${FIXTURE.length} partidos`);
 const state = {
-  jugadorActivo: null,        // { id, nombre, pago }
+  jugadorActivo: null,
   isAdmin: false,
-  pronosticos: {},            // {jugadorId: {partidoId: '1'|'X'|'2'}}
-  pronosticosMios: {},        // los que voy editando antes de guardar
-  pronosticosGuardados: {},   // los del usuario actual ya en DB
-  resultados: {},             // {partidoId: {real:'1'|'X'|'2'}}
-  ranking: [],                // [{nombre, fichas, aciertos, ...}]
+  pronosticos: {},
+  pronosticosMios: {},
+  pronosticosGuardados: {},
+  resultados: {},
+  ranking: [],
   ultimaSinc: null,
   faseFiltro: 'todos',
   haEditadoSinGuardar: false
 };
-
-// ============================================================
-// FIREBASE: lectura/escritura
-// ============================================================
-
-const COL_JUGADORES = 'jugadores';
-const DOC_RESULTADOS = 'resultados/main';
-const DOC_META = 'meta/main';
 
 async function fbInicializarSiVacio(){
   if(!db) return;
   try {
     const snap = await getDocs(collection(db,'jugadores'));
     if(snap.empty){
-      console.log('Inicializando jugadores en Firestore...');
+      console.log('Inicializando jugadores...');
       for(let i=0;i<JUGADORES_INICIALES.length;i++){
         const nombre = JUGADORES_INICIALES[i];
         const id = generarId(nombre);
@@ -283,10 +234,6 @@ async function fbGuardarResultados(resultados){
   });
 }
 
-// ============================================================
-// SINCRONIZACIÓN AUTO DE RESULTADOS
-// ============================================================
-
 const RESULTS_URL = 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
 
 const NOMBRE_A_CODIGO = {
@@ -304,7 +251,7 @@ const NOMBRE_A_CODIGO = {
   'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN'
 };
 
-async function sincronizarResultados(silencioso=false){
+window.sincronizarResultados = async function(silencioso=false){
   if(!silencioso) toast('🔄 Sincronizando...','info');
   try {
     const res = await fetch(RESULTS_URL,{cache:'no-store'});
@@ -352,7 +299,7 @@ async function sincronizarResultados(silencioso=false){
     if(!silencioso) toast('Error al sincronizar','error');
     return 0;
   }
-}
+};
 
 function actualizarUltimaSync(){
   const el = document.getElementById('ultima-sinc');
@@ -363,10 +310,6 @@ function actualizarUltimaSync(){
     el.textContent = min < 1 ? 'recién' : (min < 60 ? `hace ${min} min` : `hace ${Math.floor(min/60)}h`);
   } else el.textContent = 'nunca';
 }
-
-// ============================================================
-// CÁLCULO DE FICHAS Y RANKING
-// ============================================================
 
 function calcularFichasJugador(jugador){
   let fichas = FICHAS_INICIALES;
@@ -379,9 +322,8 @@ function calcularFichasJugador(jugador){
     const cuotas = { '1': p[7], 'X': p[8], '2': p[9] };
     
     if(real && real.real){
-      // Partido jugado: descontar la ficha y, si acertó, sumar el pago
       const apuesta = pron[id];
-      fichas -= 1; // se gasta la ficha
+      fichas -= 1;
       if(apuesta && apuesta === real.real){
         const pago = cuotas[apuesta] || 1;
         fichas += pago;
@@ -413,16 +355,9 @@ async function actualizarRanking(){
   renderRanking();
   if(state.jugadorActivo) renderUserBars();
 }
-
-// ============================================================
-// LOGIN
-// ============================================================
-
 async function inicializarLogin(){
   await fbInicializarSiVacio();
   const jugadores = await fbCargarJugadores();
-  
-  // Ordenar alfabéticamente
   jugadores.sort((a,b)=>a.nombre.localeCompare(b.nombre));
   
   const sel = document.getElementById('select-jugador');
@@ -432,7 +367,6 @@ async function inicializarLogin(){
       return `<option value="${j.id}">${escapeHtml(j.nombre)}${!tienePin ? ' · primera vez' : ''}</option>`;
     }).join('');
   
-  // Si hay sesión guardada, intentar recuperarla
   const guardado = localStorage.getItem('prode_sesion');
   if(guardado){
     try {
@@ -445,12 +379,11 @@ async function inicializarLogin(){
     } catch(e){}
   }
   
-  // Sino, mostrar pantalla de login
   document.getElementById('seccion-loading').style.display='none';
   document.getElementById('sec-login').classList.add('active');
 }
 
-async function intentarLogin(){
+window.intentarLogin = async function(){
   const sel = document.getElementById('select-jugador');
   const pin = document.getElementById('input-pin').value;
   const id = sel.value;
@@ -462,7 +395,6 @@ async function intentarLogin(){
   if(!j){ toast('Error: jugador no encontrado','error'); return }
   
   if(!j.pin || j.pin.length !== 4){
-    // Primera vez: setear el PIN
     if(!confirm(`Vas a usar el PIN "${pin}" para entrar siempre. ¿Confirmás?\n\n⚠️ Anotalo: si lo perdés tenés que pedirle al admin que lo resetee.`)){
       return;
     }
@@ -475,7 +407,7 @@ async function intentarLogin(){
   }
   
   await iniciarSesion(j);
-}
+};
 
 async function iniciarSesion(jugador){
   state.jugadorActivo = jugador;
@@ -483,37 +415,36 @@ async function iniciarSesion(jugador){
   state.pronosticosMios = { ...state.pronosticosGuardados };
   state.haEditadoSinGuardar = false;
   
-  // Guardar sesión local
   localStorage.setItem('prode_sesion', JSON.stringify({ id: jugador.id, pin: jugador.pin }));
   
-  // Cargar resultados y ranking
   state.resultados = await fbCargarResultados();
   await actualizarRanking();
+  window.sincronizarResultados(true);
   
-  // Sincronizar (silencioso) en background
-  sincronizarResultados(true);
-  
-  // Mostrar app
   document.getElementById('seccion-loading').style.display='none';
   document.getElementById('sec-login').classList.remove('active');
   document.getElementById('bottom-nav').style.display='grid';
   
-  irA('inicio');
+  window.irA('inicio');
   toast(`Hola ${jugador.nombre.split(' ')[0]}!`,'success');
   mostrarBannerInstalar();
 }
 
-function cerrarSesion(){
+window.cerrarSesion = function(){
   if(!confirm('¿Salir del prode? Vas a tener que volver a poner tu PIN.')) return;
   localStorage.removeItem('prode_sesion');
   location.reload();
-}
+};
 
-// ============================================================
-// NAVEGACIÓN
-// ============================================================
-
-function irA(tab){
+window.irA = function(tab){
+  if(state.haEditadoSinGuardar && tab !== 'mi-prode'){
+    if(!confirm('Tenés cambios sin guardar. ¿Salir igual?\n\nLos cambios se van a perder.')){
+      return;
+    }
+    state.pronosticosMios = { ...state.pronosticosGuardados };
+    state.haEditadoSinGuardar = false;
+  }
+  
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   
@@ -528,22 +459,7 @@ function irA(tab){
   if(tab === 'mi-prode') renderPartidos();
   if(tab === 'ranking') renderRanking();
   if(tab === 'inicio') renderInicio();
-}
-
-// Navegación con tracking de cambios sin guardar
-const irAOriginal = irA;
-window.irA = function(tab){
-  if(state.haEditadoSinGuardar && tab !== 'mi-prode'){
-    if(!confirm('Tenés cambios sin guardar. ¿Salir igual?\n\nLos cambios se van a perder.')) return;
-    state.pronosticosMios = { ...state.pronosticosGuardados };
-    state.haEditadoSinGuardar = false;
-  }
-  irAOriginal(tab);
 };
-
-// ============================================================
-// RENDER · USER BARS
-// ============================================================
 
 function renderUserBars(){
   if(!state.jugadorActivo) return;
@@ -566,34 +482,22 @@ function renderUserBars(){
   });
 }
 
-// ============================================================
-// RENDER · INICIO
-// ============================================================
-
 function renderInicio(){
   renderUserBars();
-  
-  // Días restantes
   const debut = new Date('2026-06-11T16:00:00-03:00');
   const dias = Math.max(0, Math.ceil((debut - new Date())/(1000*60*60*24)));
-  document.getElementById('dias-restantes').textContent = dias;
+  const el = document.getElementById('dias-restantes');
+  if(el) el.textContent = dias;
 }
-
-// ============================================================
-// RENDER · PARTIDOS (Mi Prode)
-// ============================================================
 
 function renderPartidos(){
   renderUserBars();
-  
   const cont = document.getElementById('lista-partidos');
   let lista = FIXTURE.slice();
-  
   if(state.faseFiltro !== 'todos'){
     lista = lista.filter(p => p[5] === state.faseFiltro);
   }
   
-  // Agrupar por fecha
   const porFecha = {};
   lista.forEach(p=>{
     if(!porFecha[p[1]]) porFecha[p[1]] = [];
@@ -603,9 +507,7 @@ function renderPartidos(){
   let html = '';
   Object.entries(porFecha).forEach(([fecha, partidos])=>{
     html += `<div class="fecha-divider">${fecha}</div>`;
-    partidos.forEach(p=>{
-      html += renderPartido(p);
-    });
+    partidos.forEach(p=>{ html += renderPartido(p); });
   });
   
   cont.innerHTML = html || '<div class="empty"><div class="ico">⚽</div><p>Sin partidos en esta fase</p></div>';
@@ -677,14 +579,8 @@ function faseNombre(fase, grupo){
   if(grupo === '3°') return '3er Puesto';
   return ({ r32:'Ronda 32', r16:'Octavos', qf:'Cuartos', sf:'Semis' })[fase] || fase;
 }
-
-// ============================================================
-// SELECCIÓN DE APUESTAS
-// ============================================================
-
 window.elegir = function(partidoId, opcion){
   if(state.pronosticosMios[partidoId] === opcion){
-    // Toggle off
     delete state.pronosticosMios[partidoId];
   } else {
     state.pronosticosMios[partidoId] = opcion;
@@ -693,15 +589,9 @@ window.elegir = function(partidoId, opcion){
   renderPartidos();
 };
 
-// ============================================================
-// FILTROS
-// ============================================================
-
 function actualizarFiltrosFase(){
   document.querySelectorAll('#filtros-fase .filtro').forEach(b=>{
     b.classList.toggle('active', b.dataset.fase === state.faseFiltro);
-    
-    // Mostrar contador de pendientes
     if(state.jugadorActivo){
       const fase = b.dataset.fase;
       const partidos = fase === 'todos' ? FIXTURE : FIXTURE.filter(p=>p[5] === fase);
@@ -709,10 +599,7 @@ function actualizarFiltrosFase(){
         const id = p[0];
         return !state.resultados[id] && !state.pronosticosMios[id] && !p[3].startsWith('?');
       }).length;
-      
-      const txt = b.textContent.replace(/\s*\d+$/,'').trim().split(' ')[0];
       const labels = { todos:'Todos', grupos:'Grupos', r32:'R32', r16:'Octavos', qf:'Cuartos', sf:'Semis', final:'Final' };
-      
       let badge = '';
       if(pendientes > 0 && fase !== 'todos'){
         badge = ` <span class="pendiente">${pendientes}</span>`;
@@ -728,10 +615,6 @@ document.querySelectorAll('#filtros-fase .filtro').forEach(b=>{
     renderPartidos();
   });
 });
-
-// ============================================================
-// GUARDAR PRONÓSTICOS
-// ============================================================
 
 function actualizarBotonGuardar(){
   const btn = document.getElementById('btn-guardar');
@@ -771,22 +654,17 @@ window.guardarSeleccion = async function(){
   }
 };
 
-// ============================================================
-// RENDER · RANKING
-// ============================================================
-
 function renderRanking(){
   renderUserBars();
-  
   const cont = document.getElementById('lista-ranking');
   const podio = document.getElementById('podio-container');
+  if(!cont) return;
   
   if(state.ranking.length === 0){
     cont.innerHTML = '<div class="empty"><div class="ico">📊</div><p>Cargando ranking...</p></div>';
     return;
   }
   
-  // Líder destacado si hay diferencia
   const lider = state.ranking[0];
   if(lider && lider.aciertos > 0){
     podio.innerHTML = `<div class="podio-top">
@@ -815,41 +693,10 @@ function renderRanking(){
   }).join('');
 }
 
-// ============================================================
-// COMPARTIR
-// ============================================================
-
-function actualizarShareLink(){
-  const url = window.location.href.split('?')[0].split('#')[0];
-  const el = document.getElementById('share-link');
-  if(el) el.value = url;
-}
-
-window.copiarLink = function(){
-  const url = document.getElementById('share-link').value;
-  navigator.clipboard.writeText(url).then(()=>toast('✓ Link copiado','success'))
-    .catch(()=>{
-      const i = document.getElementById('share-link');
-      i.select(); document.execCommand('copy');
-      toast('✓ Link copiado','success');
-    });
-};
-
-window.compartirWA = function(){
-  const url = window.location.href.split('?')[0].split('#')[0];
-  const txt = `🏆 PRODE MUNDIAL '26 - FORO! 🏆\n\n16 amigos · $50.000 c/u\nPozo: $800.000\nGana el que tenga más fichas\n\n${url}`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,'_blank');
-};
-
 window.pagar = function(){
-  // Usuario va al MP
   window.open(MP_LINK,'_blank');
   toast('💳 Abriendo Mercado Pago...','info');
 };
-
-// ============================================================
-// ADMIN
-// ============================================================
 
 function checkAdminFromURL(){
   const params = new URLSearchParams(window.location.search);
@@ -896,20 +743,13 @@ function aplicarVisibilidadAdmin(){
 }
 
 window.abrirModoArbitro = function(){
-  // Modo simple: pedirle al admin que cargue resultados manualmente
-  const ids = FIXTURE.filter(p=>!p[3].startsWith('?')).map(p=>p[0]);
-  
-  let html = '<div style="padding:20px"><h2>Cargar resultados</h2>';
-  html += '<p>Próximamente: pantalla completa de gestión.</p>';
-  html += '<p>Por ahora podés actualizar manualmente desde Firestore directamente.</p>';
-  html += '<button onclick="location.reload()">Cerrar</button></div>';
-  alert('Próximamente: pantalla completa de gestión manual.\nPor ahora la sincronización automática debería ser suficiente.');
+  alert('Próximamente: pantalla de gestión manual.\nLa sincronización automática debería ser suficiente.');
 };
 
 window.resetearTodo = async function(){
   if(!state.isAdmin){ toast('Solo admin','error'); return }
-  if(!confirm('⚠️ ¿BORRAR TODOS LOS DATOS del prode?\n\nEsto borra:\n- Todos los pronósticos\n- Todos los pagos\n- Todos los PINs\n- Todos los resultados\n\nEsta acción NO se puede deshacer.')) return;
-  if(!confirm('¿Estás 100% seguro? Última oportunidad.')) return;
+  if(!confirm('⚠️ ¿BORRAR TODOS LOS DATOS?\n\nEsto borra pronósticos, pagos, PINs y resultados.\n\nNO se puede deshacer.')) return;
+  if(!confirm('¿Estás 100% seguro?')) return;
   
   toast('Reseteando...');
   for(const j of JUGADORES_INICIALES){
@@ -927,10 +767,6 @@ window.resetearTodo = async function(){
   setTimeout(()=>location.reload(), 1000);
 };
 
-// ============================================================
-// HELPERS
-// ============================================================
-
 function escapeHtml(s){
   if(typeof s!=='string') return s;
   return s.replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -945,10 +781,6 @@ window.toast = function(msg, tipo='info'){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>el.classList.remove('show'), 2800);
 };
-
-// ============================================================
-// PWA: Service worker + banner instalar
-// ============================================================
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
@@ -977,17 +809,12 @@ window.cerrarBannerInstalar = function(){
 window.abrirInstrucciones = function(){
   const ios = detectarIPhone();
   alert(ios
-    ? '📱 INSTALAR EN iPhone:\n\n1. Tocá Compartir ⬆️ abajo en Safari\n2. Bajá y tocá "Agregar a pantalla de inicio"\n3. Tocá "Agregar"\n\n¡Listo! Vas a tener el ícono del Prode \'26.'
+    ? '📱 INSTALAR EN iPhone:\n\n1. Tocá Compartir ⬆️ abajo en Safari\n2. Bajá y tocá "Agregar a pantalla de inicio"\n3. Tocá "Agregar"'
     : '📱 INSTALAR LA APP:\n\nEn iPhone: Compartir ⬆️ → "Agregar a pantalla de inicio"\nEn Android Chrome: ⋮ → "Instalar aplicación"');
 };
 
-// ============================================================
-// INIT
-// ============================================================
-
 (async function init(){
   checkAdminFromURL();
-  actualizarShareLink();
   
   if(!db){
     document.getElementById('seccion-loading').innerHTML = `
@@ -995,8 +822,7 @@ window.abrirInstrucciones = function(){
         <div style="font-size:48px">⚠️</div>
         <h2 style="color:var(--dorado);margin:14px 0">Configurá Firebase</h2>
         <p style="color:var(--muted);font-size:14px;line-height:1.6">
-          Falta configurar Firebase para que la app funcione.<br>
-          Seguí las instrucciones en <strong>INSTRUCCIONES-FIREBASE.md</strong>
+          Falta configurar Firebase para que la app funcione.
         </p>
       </div>`;
     return;
@@ -1004,26 +830,21 @@ window.abrirInstrucciones = function(){
   
   await inicializarLogin();
   
-  // Auto-sync cada 5 minutos cuando hay sesión activa
   setInterval(()=>{
-    if(state.jugadorActivo) sincronizarResultados(true);
+    if(state.jugadorActivo) window.sincronizarResultados(true);
   }, 5 * 60 * 1000);
   setInterval(actualizarUltimaSync, 30000);
-  setInterval(renderInicio, 60000); // actualiza días restantes
+  setInterval(renderInicio, 60000);
 })();
 
-// Enter en el PIN dispara login
-document.getElementById('input-pin').addEventListener('keydown', e=>{
-  if(e.key === 'Enter') intentarLogin();
-});
-
-// Auto-submit cuando completa los 4 dígitos
-document.getElementById('input-pin').addEventListener('input', e=>{
-  if(e.target.value.length === 4){
-    setTimeout(()=>intentarLogin(), 200);
-  }
-});
-
-window.intentarLogin = intentarLogin;
-window.cerrarSesion = cerrarSesion;
-window.sincronizarResultados = sincronizarResultados;
+const inputPin = document.getElementById('input-pin');
+if(inputPin){
+  inputPin.addEventListener('keydown', e=>{
+    if(e.key === 'Enter') window.intentarLogin();
+  });
+  inputPin.addEventListener('input', e=>{
+    if(e.target.value.length === 4){
+      setTimeout(()=>window.intentarLogin(), 200);
+    }
+  });
+}
