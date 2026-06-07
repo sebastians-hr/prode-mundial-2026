@@ -667,12 +667,13 @@ async function recalcRanking(){
 // RENDER: POZO (dinámico)
 // ============================================================
 function actualizarPozo(){
-  const total = S.totalJugadores * ENTRADA;
+  const pagados = S.ranking.filter(r => r.pago).length;
+  const total   = pagados * ENTRADA;
   const elMonto = document.getElementById('pozo-monto');
   const elInfo  = document.getElementById('pozo-info');
   const elRegla = document.getElementById('pozo-regla');
   if(elMonto) elMonto.textContent = '$' + total.toLocaleString('es-AR');
-  if(elInfo)  elInfo.textContent  = `${S.totalJugadores} jugadores × $${ENTRADA.toLocaleString('es-AR')} · El campeón se lleva todo`;
+  if(elInfo)  elInfo.textContent  = `${pagados} de ${S.totalJugadores} pagaron · El campeón se lleva todo`;
   if(elRegla) elRegla.textContent = `$${total.toLocaleString('es-AR')}`;
 }
 
