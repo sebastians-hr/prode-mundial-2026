@@ -427,9 +427,8 @@ async function init(){
       <input type="tel" class="pin-input" id="reg-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="PIN ••••" autocomplete="off">
       <div class="login-help" style="margin:10px 0 14px">
         <p style="font-size:13px;margin-bottom:6px;color:var(--celeste-l)">${esc(PREGUNTA_SECRETA)}</p>
-        <p style="color:var(--dorado);font-size:12px">Respondé en minúscula</p>
       </div>
-      <input type="text" class="select-jugador" id="reg-respuesta" placeholder="Tu respuesta (minúscula)" autocomplete="off">
+      <input type="text" class="select-jugador" id="reg-respuesta" placeholder="Tu respuesta" autocomplete="off">
       <button class="btn-grande btn-primary" data-action="registrar-nuevo">Crear perfil</button>
       <button class="btn-rojo" data-action="cancelar-registro" style="width:100%;margin-top:8px">← Volver</button>
     </div>`
@@ -478,7 +477,7 @@ async function intentarLogin(){
 
 async function iniciarSesion(j){
   if(j.verificado !== true){
-    const resp = prompt(`🔐 Pregunta de verificación\n\n${PREGUNTA_SECRETA}\n\n(respondé en minúscula)`);
+    const resp = prompt(`🔐 Pregunta de verificación\n\n${PREGUNTA_SECRETA}`);
     if(resp === null || resp.trim().toLowerCase() !== RESPUESTA_SECRETA){
       localStorage.removeItem('ps');
       document.getElementById('seccion-loading').style.display='none';
