@@ -32,6 +32,9 @@ const MP_LINK     = 'https://mpago.la/2zZxFZx';
 const FICHAS_INI  = 104;
 const ENTRADA     = 50000;
 
+const PREGUNTA_SECRETA  = '¿A qué nombre corresponde el apodo Anibal?';
+const RESPUESTA_SECRETA = 'lucas';
+
 // ============================================================
 // FIREBASE
 // ============================================================
@@ -337,6 +340,9 @@ document.addEventListener('click', e=>{
     if(a==='resetear')                { resetearTodo(); return; }
     if(a==='ver-pronosticos')         { verPronosticosJugador(ac.dataset.id); return; }
     if(a==='cerrar-pronosticos-ajenos'){ renderRanking(); return; }
+    if(a==='mostrar-registro')        { mostrarRegistro(); return; }
+    if(a==='cancelar-registro')       { cancelarRegistro(); return; }
+    if(a==='registrar-nuevo')         { registrarNuevo(); return; }
   }
 });
 
@@ -405,6 +411,36 @@ async function init(){
   sel.innerHTML = '<option value="">— Elegí tu nombre —</option>' +
     jugadores.map(j=>`<option value="${j.id}">${esc(j.nombre)}${!j.pin?' · primera vez':''}</option>`).join('');
 
+  // Inyectar opción de registro abierto en la pantalla de login
+  document.querySelector('#sec-login .login-box').insertAdjacentHTML('beforeend',
+    `<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--borde)">
+      <p style="color:var(--muted);font-size:13px;margin-bottom:10px;text-align:center">¿No estás en la lista?</p>
+      <button class="btn-grande btn-secundario" data-action="mostrar-registro">✍️ Crear perfil / Sumarme</button>
+    </div>`
+  );
+  document.getElementById('sec-login').insertAdjacentHTML('beforeend',
+    `<div id="registro-panel" class="login-box" style="display:none">
+      <div class="ico">✍️</div>
+      <h2>Crear perfil</h2>
+      <p style="margin-bottom:18px">Completá tus datos para sumarte al prode</p>
+      <input type="text" class="select-jugador" id="reg-nombre" placeholder="Tu nombre completo" autocomplete="off">
+      <input type="tel" class="pin-input" id="reg-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="PIN ••••" autocomplete="off">
+      <div class="login-help" style="margin:10px 0 14px">
+        <p style="font-size:13px;margin-bottom:6px;color:var(--celeste-l)">${esc(PREGUNTA_SECRETA)}</p>
+        <p style="color:var(--dorado);font-size:12px">Respondé en minúscula</p>
+      </div>
+      <input type="text" class="select-jugador" id="reg-respuesta" placeholder="Tu respuesta (minúscula)" autocomplete="off">
+      <button class="btn-grande btn-primary" data-action="registrar-nuevo">Crear perfil</button>
+      <button class="btn-rojo" data-action="cancelar-registro" style="width:100%;margin-top:8px">← Volver</button>
+    </div>`
+  );
+  document.getElementById('reg-pin')?.addEventListener('input', e=>{
+    if(e.target.value.length===4) document.getElementById('reg-respuesta')?.focus();
+  });
+  document.getElementById('reg-respuesta')?.addEventListener('keydown', e=>{
+    if(e.key==='Enter') registrarNuevo();
+  });
+
   // Sesión guardada
   try{
     const g = JSON.parse(localStorage.getItem('ps')||'null');
@@ -441,6 +477,18 @@ async function intentarLogin(){
 }
 
 async function iniciarSesion(j){
+  if(j.verificado !== true){
+    const resp = prompt(`🔐 Pregunta de verificación\n\n${PREGUNTA_SECRETA}\n\n(respondé en minúscula)`);
+    if(resp === null || resp.trim().toLowerCase() !== RESPUESTA_SECRETA){
+      localStorage.removeItem('ps');
+      document.getElementById('seccion-loading').style.display='none';
+      document.getElementById('sec-login').classList.add('active');
+      toast('Respuesta incorrecta','error');
+      return;
+    }
+    j.verificado = true;
+    await fbSetJugador(j);
+  }
   S.jugador = j;
   S.pronGuardados = j.pronosticos||{};
   // Normalizar pronósticos viejos al nuevo formato
@@ -482,6 +530,49 @@ async function marcarPago(){
   }catch(e){
     S.jugador.pago = false;
     toast('Error al guardar','error');
+  }
+}
+
+function mostrarRegistro(){
+  document.querySelector('#sec-login .login-box').style.display='none';
+  document.getElementById('registro-panel').style.display='block';
+  document.getElementById('reg-nombre')?.focus();
+}
+
+function cancelarRegistro(){
+  document.getElementById('registro-panel').style.display='none';
+  document.querySelector('#sec-login .login-box').style.display='';
+}
+
+async function registrarNuevo(){
+  const nombre = document.getElementById('reg-nombre')?.value?.trim();
+  const pin    = document.getElementById('reg-pin')?.value;
+  const resp   = document.getElementById('reg-respuesta')?.value;
+
+  if(!nombre)                                                { toast('Ingresá tu nombre','error'); return; }
+  if(!/^\d{4}$/.test(pin))                                   { toast('PIN de 4 dígitos','error'); return; }
+  if(!resp || resp.trim().toLowerCase() !== RESPUESTA_SECRETA){ toast('Respuesta incorrecta','error'); return; }
+
+  const id  = mkId(nombre);
+  const btn = document.querySelector('[data-action="registrar-nuevo"]');
+  if(btn){ btn.disabled=true; btn.textContent='Creando perfil...'; }
+
+  try{
+    const existe = await fbGetJugador(id);
+    if(existe){
+      toast(`"${nombre}" ya existe · elegilo del dropdown para entrar con tu PIN`,'error');
+      if(btn){ btn.disabled=false; btn.textContent='Crear perfil'; }
+      return;
+    }
+    const j = {id, nombre, pin, pago:false, pronosticos:{}, verificado:true, fechaCreacion:new Date().toISOString()};
+    await setDoc(doc(db,'jugadores',id), j);
+    const sel = document.getElementById('select-jugador');
+    if(sel){ const opt=document.createElement('option'); opt.value=id; opt.textContent=nombre; sel.appendChild(opt); }
+    S.totalJugadores++;
+    await iniciarSesion(j);
+  }catch(e){
+    toast('Error al crear perfil','error');
+    if(btn){ btn.disabled=false; btn.textContent='Crear perfil'; }
   }
 }
 
