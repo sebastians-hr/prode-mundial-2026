@@ -338,6 +338,7 @@ document.addEventListener('click', e=>{
     if(a==='eliminar-participante')   { eliminarParticipante(); return; }
     if(a==='actualizar-cuotas')       { actualizarCuotas(); return; }
     if(a==='resetear')                { resetearTodo(); return; }
+    if(a==='resetear-pin')            { resetearPin(); return; }
     if(a==='ver-pronosticos')         { verPronosticosJugador(ac.dataset.id); return; }
     if(a==='cerrar-pronosticos-ajenos'){ renderRanking(); return; }
     if(a==='mostrar-registro')        { mostrarRegistro(); return; }
@@ -639,6 +640,24 @@ async function eliminarParticipante(){
   actualizarPozo();
   await recalcRanking();
   toast(`✓ ${j.nombre} eliminado`,'success');
+}
+
+async function resetearPin(){
+  if(!S.isAdmin){ toast('Solo admin','error'); return; }
+  const jugadores = await fbGetJugadores();
+  jugadores.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const lista = jugadores.map((j,i)=>`${i+1}. ${j.nombre}`).join('\n');
+  const r = prompt(`¿A qué número querés resetearle el PIN?\n\n${lista}`);
+  if(!r) return;
+  const idx = parseInt(r)-1;
+  if(isNaN(idx)||idx<0||idx>=jugadores.length){ toast('Número inválido','error'); return; }
+  const j = jugadores[idx];
+  if(!confirm(`¿Resetear el PIN de ${j.nombre}?\nVa a tener que elegir uno nuevo al entrar.`)) return;
+  const jActual = await fbGetJugador(j.id);
+  if(!jActual){ toast('Jugador no encontrado','error'); return; }
+  jActual.pin = '';
+  await fbSetJugador(jActual);
+  toast(`PIN de ${j.nombre} reseteado · va a elegir uno nuevo al entrar`,'success');
 }
 
 // Actualizar cuotas de un partido (admin)
