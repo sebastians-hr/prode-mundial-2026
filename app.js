@@ -325,15 +325,18 @@ document.addEventListener('click', e=>{
 
   if(ac){
     const a = ac.dataset.action;
-    if(a==='pagar')                { window.open(MP_LINK,'_blank'); return; }
-    if(a==='cerrar-sesion')        { cerrarSesion(); return; }
-    if(a==='guardar')              { guardarSeleccion(); return; }
-    if(a==='sincronizar')          { sincronizar(false); return; }
-    if(a==='login')                { intentarLogin(); return; }
-    if(a==='agregar-participante') { agregarParticipante(); return; }
-    if(a==='eliminar-participante'){ eliminarParticipante(); return; }
-    if(a==='actualizar-cuotas')    { actualizarCuotas(); return; }
-    if(a==='resetear')             { resetearTodo(); return; }
+    if(a==='pagar')                   { window.open(MP_LINK,'_blank'); return; }
+    if(a==='marcar-pago')             { marcarPago(); return; }
+    if(a==='cerrar-sesion')           { cerrarSesion(); return; }
+    if(a==='guardar')                 { guardarSeleccion(); return; }
+    if(a==='sincronizar')             { sincronizar(false); return; }
+    if(a==='login')                   { intentarLogin(); return; }
+    if(a==='agregar-participante')    { agregarParticipante(); return; }
+    if(a==='eliminar-participante')   { eliminarParticipante(); return; }
+    if(a==='actualizar-cuotas')       { actualizarCuotas(); return; }
+    if(a==='resetear')                { resetearTodo(); return; }
+    if(a==='ver-pronosticos')         { verPronosticosJugador(ac.dataset.id); return; }
+    if(a==='cerrar-pronosticos-ajenos'){ renderRanking(); return; }
   }
 });
 
@@ -465,6 +468,21 @@ function cerrarSesion(){
   if(!confirm('¿Salir? Vas a necesitar tu PIN para volver.')) return;
   localStorage.removeItem('ps');
   location.reload();
+}
+
+async function marcarPago(){
+  if(!S.jugador || S.jugador.pago) return;
+  if(!confirm('¿Confirmás que ya pagaste tu entrada de $50.000?\n\nEsta acción no se puede deshacer.')) return;
+  S.jugador.pago = true;
+  try{
+    await fbSetJugador(S.jugador);
+    await recalcRanking();
+    renderInicio();
+    toast('✅ Pago registrado · El pozo subió $50.000','success');
+  }catch(e){
+    S.jugador.pago = false;
+    toast('Error al guardar','error');
+  }
 }
 
 // ============================================================
@@ -708,6 +726,14 @@ function renderInicio(){
   const dias  = Math.max(0,Math.ceil((debut-Date.now())/86400000));
   const el    = document.getElementById('dias-restantes');
   if(el) el.textContent = dias;
+  const pagoArea = document.getElementById('pago-area');
+  if(pagoArea && S.jugador){
+    if(S.jugador.pago){
+      pagoArea.innerHTML = `<div class="card" style="text-align:center;color:var(--verde);font-family:var(--condensed);font-weight:700;font-size:16px;letter-spacing:0.5px;margin-bottom:12px">✅ Pagaste · Estás en el pozo</div>`;
+    } else {
+      pagoArea.innerHTML = `<button class="btn-grande btn-dorado" data-action="marcar-pago">✅ Ya pagué mi entrada</button><button class="btn-grande btn-mp" data-action="pagar">💳 Pagar por Mercado Pago</button>`;
+    }
+  }
 }
 
 // ============================================================
@@ -835,6 +861,99 @@ function htmlPartido(p){
   </div>`;
 }
 
+function htmlPartidoAjeno(p, jugador){
+  const [id,fecha,hora,lc,vc,fase,grupo,dL,dE,dV] = p;
+  const [cL,cE,cV] = getCuotas(id, dL, dE, dV);
+  const L  = EQ[lc]||{n:lc.replace('?',''),f:'❓'};
+  const V  = EQ[vc]||{n:vc.replace('?',''),f:'❓'};
+  const cerrado = esCerrado(p);
+  const pron = normPron((jugador.pronosticos||{})[id]);
+  const real = S.resultados[id];
+
+  const fasesAbiertas = ['grupos','r32','r16'];
+  const visible = fasesAbiertas.includes(fase) || !!real?.real;
+
+  const gt = fase==='grupos' ? `Grupo ${grupo}`
+    : ({r32:'R32',r16:'Octavos',qf:'Cuartos',sf:'Semis'})[fase]
+    || (grupo==='FINAL'?'FINAL':'3er Puesto');
+  const rtag = real ? `<span class="resultado-real">${real.gL}-${real.gV}</span>` : '';
+
+  if(!visible){
+    return `<div class="partido cerrado">
+      <div class="partido-meta">
+        <span><span class="grupo">${gt}</span> · ${fecha} ${hora}hs</span>
+        ${rtag}
+      </div>
+      <div style="text-align:center;padding:12px;font-family:var(--condensed);font-size:13px;color:var(--muted);font-weight:700;letter-spacing:0.5px">🔒 Se revela cuando termine el partido</div>
+    </div>`;
+  }
+
+  const clase = cerrado
+    ? (pron.op===real?.real ? 'acertado' : (pron.op ? 'fallado' : 'cerrado'))
+    : (pron.op ? 'guardado' : '');
+
+  const btnCls=(op)=>{
+    let c='btn-apuesta'+(op==='X'?' empate':'');
+    if(pron.op===op) c+=' elegida';
+    if(cerrado && pron.op===op && real?.real) c += pron.op===real.real ? ' acertado' : ' fallado';
+    return c;
+  };
+
+  let pago='';
+  if(cerrado && pron.op){
+    if(pron.op===real?.real){
+      const cuota={'1':cL,'X':cE,'2':cV}[pron.op];
+      if(pron.gL!==null && pron.gV!==null && pron.gL===real.gL && pron.gV===real.gV){
+        pago=`<div class="partido-resultado-pago gano">⭐ EXACTO · +${(cuota*2).toFixed(2)} fichas (×2)</div>`;
+      } else {
+        pago=`<div class="partido-resultado-pago gano">✓ Acertó · +${cuota} fichas</div>`;
+      }
+    } else {
+      pago=`<div class="partido-resultado-pago perdio">✗ Falló · -1 ficha</div>`;
+    }
+  } else if(cerrado && !pron.op){
+    pago=`<div class="partido-resultado-pago perdio">✗ No apostó · -1 ficha</div>`;
+  }
+
+  let scoreHtml='';
+  if(pron.gL!==null && pron.gV!==null){
+    scoreHtml=`<div class="score-exacto">
+      <span class="score-lbl">Resultado exacto pronosticado:</span>
+      <div class="score-row">
+        <span class="score-in" style="display:flex;align-items:center;justify-content:center">${pron.gL}</span>
+        <span class="score-guion">-</span>
+        <span class="score-in" style="display:flex;align-items:center;justify-content:center">${pron.gV}</span>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="partido ${clase}">
+    <div class="partido-meta">
+      <span><span class="grupo">${gt}</span> · ${fecha} ${hora}hs</span>
+      ${rtag}
+    </div>
+    <div class="apuestas-3">
+      <button class="${btnCls('1')}" disabled>
+        <span class="equipo-flag">${L.f}</span>
+        <span class="equipo-nombre">${L.n}</span>
+        <span class="cuota">${cL}</span>
+      </button>
+      <button class="${btnCls('X')}" disabled>
+        <span class="empate-label">X</span>
+        <span class="equipo-nombre" style="font-size:11px;color:var(--muted)">EMPATE</span>
+        <span class="cuota">${cE}</span>
+      </button>
+      <button class="${btnCls('2')}" disabled>
+        <span class="equipo-flag">${V.f}</span>
+        <span class="equipo-nombre">${V.n}</span>
+        <span class="cuota">${cV}</span>
+      </button>
+    </div>
+    ${scoreHtml}
+    ${pago}
+  </div>`;
+}
+
 // ============================================================
 // GUARDAR
 // ============================================================
@@ -891,7 +1010,7 @@ function renderRanking(){
     const pc=i===0?'p1':i===1?'p2':i===2?'p3':'';
     const yo=S.jugador&&r.id===S.jugador.id?' yo':'';
     const tag=r.pago?'<span class="pago-tag">PAGÓ</span>':'<span class="nopago-tag">DEBE</span>';
-    return `<div class="ranking-row${yo}">
+    return `<div class="ranking-row${yo}" data-action="ver-pronosticos" data-id="${r.id}" style="cursor:pointer">
       <div class="ranking-pos ${pc}">${i+1}</div>
       <div class="ranking-info">
         <div class="ranking-nombre">${esc(r.nombre)} ${tag}</div>
@@ -902,6 +1021,34 @@ function renderRanking(){
   }).join('');
 
   actualizarSyncLabel();
+}
+
+async function verPronosticosJugador(id){
+  if(!id) return;
+  const cont  = document.getElementById('lista-ranking');
+  const podio = document.getElementById('podio-container');
+  if(!cont) return;
+  cont.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  podio.innerHTML='';
+  const jugador = await fbGetJugador(id);
+  if(!jugador){ toast('No se pudo cargar','error'); renderRanking(); return; }
+  const st = calcFichas(jugador);
+  podio.innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <button class="btn-grande btn-secundario" data-action="cerrar-pronosticos-ajenos" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:14px;min-height:44px">← Volver</button>
+    <div>
+      <div style="font-family:var(--display);font-size:22px;color:var(--celeste);letter-spacing:1px">${esc(jugador.nombre)}</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--condensed);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">${st.fichas} fichas · ${st.aciertos} aciertos · ${st.exactos} exactos</div>
+    </div>
+  </div>`;
+  const porFecha={};
+  FX.forEach(p=>{(porFecha[p[1]]||(porFecha[p[1]]=[])).push(p);});
+  let html='';
+  Object.entries(porFecha).forEach(([fecha,ps])=>{
+    html+=`<div class="fecha-divider">${fecha}</div>`;
+    ps.forEach(p=>{html+=htmlPartidoAjeno(p,jugador);});
+  });
+  cont.innerHTML=html||'<div class="empty"><div class="ico">⚽</div><p>Sin pronósticos</p></div>';
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 // ============================================================

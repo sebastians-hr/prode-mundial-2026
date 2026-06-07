@@ -1,4 +1,4 @@
-const CACHE = 'prode-26-v3';
+const CACHE = 'prode-26-v4';
 const FILES = ['./','./index.html','./manifest.json','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
