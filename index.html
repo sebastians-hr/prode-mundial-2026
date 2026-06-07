@@ -246,8 +246,8 @@ a{color:var(--celeste);text-decoration:none}
 .reglas-mini li{margin-bottom:5px}
 .reglas-mini strong{color:var(--celeste)}
 
-.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(150px);background:var(--celeste);color:var(--azul-d);padding:14px 22px;border-radius:25px;font-family:var(--condensed);font-weight:700;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;box-shadow:0 8px 30px rgba(116,172,223,0.4);z-index:2000;transition:transform 0.3s;max-width:90%;text-align:center}
-.toast.show{transform:translateX(-50%) translateY(0)}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(150px);opacity:0;visibility:hidden;pointer-events:none;background:var(--celeste);color:var(--azul-d);padding:14px 22px;border-radius:25px;font-family:var(--condensed);font-weight:700;font-size:14px;letter-spacing:0.8px;text-transform:uppercase;box-shadow:0 8px 30px rgba(116,172,223,0.4);z-index:2000;transition:transform 0.3s,opacity 0.3s,visibility 0.3s;max-width:90%;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;pointer-events:auto}
 .toast.error{background:var(--rojo);color:#fff}
 .toast.success{background:var(--verde);color:#fff}
 
