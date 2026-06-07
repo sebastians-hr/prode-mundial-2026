@@ -124,8 +124,8 @@ const FX = [
   ['M61','29/06','21:00','URU','ESP','grupos','H',4.00,3.40,1.85],
   ['M62','29/06','21:00','EGY','IRN','grupos','G',2.80,3.10,2.55],
   ['M63','29/06','21:00','NZL','BEL','grupos','G',7.00,4.00,1.45],
-  ['M64','30/06','16:00','PAN','ENG','grupos','L',6.00,3.70,1.50],
-  ['M65','30/06','16:00','CRO','GHA','grupos','L',1.55,3.90,6.00],
+  ['M64','30/06','16:00','ENG','GHA','grupos','L',1.50,4.00,6.00],
+  ['M65','30/06','16:00','CRO','PAN','grupos','L',1.55,3.90,6.50],
   ['M66','30/06','19:30','COL','POR','grupos','K',3.40,3.20,2.10],
   ['M67','30/06','19:30','COD','UZB','grupos','K',2.50,3.10,2.80],
   ['M68','01/07','22:00','ALG','AUT','grupos','J',2.80,3.20,2.50],
@@ -632,9 +632,9 @@ function calcFichas(j){
         sinApostar++;
       } else if(ap.op === r.real){
         const cuota = {'1':cL,'X':cE,'2':cV}[ap.op]||1;
-        // Resultado exacto: cobra ×3
+        // Resultado exacto: cobra ×2
         if(ap.gL !== null && ap.gV !== null && ap.gL === r.gL && ap.gV === r.gV){
-          fichas += cuota * 3;
+          fichas += cuota * 2;
           exactos++;
         } else {
           fichas += cuota;
@@ -772,7 +772,7 @@ function htmlPartido(p){
     if(mia.op===real?.real){
       const cuota = {'1':cL,'X':cE,'2':cV}[mia.op];
       if(mia.gL!==null && mia.gV!==null && mia.gL===real.gL && mia.gV===real.gV){
-        pago=`<div class="partido-resultado-pago gano">⭐ EXACTO · +${(cuota*3).toFixed(2)} fichas (×3)</div>`;
+        pago=`<div class="partido-resultado-pago gano">⭐ EXACTO · +${(cuota*2).toFixed(2)} fichas (×2)</div>`;
       } else {
         pago=`<div class="partido-resultado-pago gano">✓ Acertaste · +${cuota} fichas</div>`;
       }
@@ -795,7 +795,7 @@ function htmlPartido(p){
   // Score inputs (solo si no cerrado y no placeholder)
   const scoreHtml = (!cerrado && !ph) ? `
     <div class="score-exacto">
-      <span class="score-lbl">Resultado exacto (opcional · cobra ×3):</span>
+      <span class="score-lbl">Resultado exacto (opcional · cobra ×2):</span>
       <div class="score-row">
         <input type="number" min="0" max="20" placeholder="?" class="score-in"
                data-score-id="${id}" data-campo="gL"
