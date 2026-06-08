@@ -30,7 +30,7 @@ const JUGADORES_DEFAULTS = [
 const ADMIN_PASS  = 'sebasuez26';
 const MP_LINK     = 'https://mpago.la/2zZxFZx';
 const FICHAS_INI  = 104;
-const ENTRADA     = 50000;
+const ENTRADA     = 20000;
 
 const PREGUNTA_SECRETA  = '¿A qué nombre corresponde el apodo Anibal?';
 const RESPUESTA_SECRETA = 'lucas';
@@ -330,6 +330,7 @@ document.addEventListener('click', e=>{
     const a = ac.dataset.action;
     if(a==='pagar')                   { window.open(MP_LINK,'_blank'); return; }
     if(a==='marcar-pago')             { marcarPago(); return; }
+    if(a==='desmarcar-pago')          { desmarcarPago(); return; }
     if(a==='cerrar-sesion')           { cerrarSesion(); return; }
     if(a==='guardar')                 { guardarSeleccion(); return; }
     if(a==='sincronizar')             { sincronizar(false); return; }
@@ -526,15 +527,30 @@ function cerrarSesion(){
 
 async function marcarPago(){
   if(!S.jugador || S.jugador.pago) return;
-  if(!confirm('¿Confirmás que ya pagaste tu entrada de $50.000?\n\nEsta acción no se puede deshacer.')) return;
+  if(!confirm('¿Confirmás que ya pagaste tu entrada de $20.000?')) return;
   S.jugador.pago = true;
   try{
     await fbSetJugador(S.jugador);
     await recalcRanking();
     renderInicio();
-    toast('✅ Pago registrado · El pozo subió $50.000','success');
+    toast('✅ Pago registrado · El pozo subió $20.000','success');
   }catch(e){
     S.jugador.pago = false;
+    toast('Error al guardar','error');
+  }
+}
+
+async function desmarcarPago(){
+  if(!S.jugador || !S.jugador.pago) return;
+  if(!confirm('¿Querés desconfirmar tu pago?\n\nVas a quedar fuera del pozo hasta que lo vuelvas a confirmar.')) return;
+  S.jugador.pago = false;
+  try{
+    await fbSetJugador(S.jugador);
+    await recalcRanking();
+    renderInicio();
+    toast('↩ Pago desconfirmado · Ya no estás en el pozo','error');
+  }catch(e){
+    S.jugador.pago = true;
     toast('Error al guardar','error');
   }
 }
@@ -844,7 +860,7 @@ function renderInicio(){
   const pagoArea = document.getElementById('pago-area');
   if(pagoArea && S.jugador){
     if(S.jugador.pago){
-      pagoArea.innerHTML = `<div class="card" style="text-align:center;color:var(--verde);font-family:var(--condensed);font-weight:700;font-size:16px;letter-spacing:0.5px;margin-bottom:12px">✅ Pagaste · Estás en el pozo</div>`;
+      pagoArea.innerHTML = `<div class="card" style="text-align:center;margin-bottom:12px"><div style="color:var(--verde);font-family:var(--condensed);font-weight:700;font-size:16px;letter-spacing:0.5px;margin-bottom:8px">✅ Pagaste · Estás en el pozo</div><button class="btn-grande" style="background:rgba(230,57,70,0.15);color:var(--rojo);font-size:13px;padding:8px 16px" data-action="desmarcar-pago">↩ Desconfirmar pago</button></div>`;
     } else {
       pagoArea.innerHTML = `<button class="btn-grande btn-dorado" data-action="marcar-pago">✅ Ya pagué mi entrada</button><button class="btn-grande btn-mp" data-action="pagar">💳 Pagar por Mercado Pago</button>`;
     }
