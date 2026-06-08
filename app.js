@@ -45,17 +45,17 @@ const db    = getFirestore(fbApp);
 // EQUIPOS
 // ============================================================
 const EQ = {
-  MEX:{n:'México',f:'🇲🇽'}, RSA:{n:'Sudáfrica',f:'🇿🇦'}, KOR:{n:'Corea Sur',f:'🇰🇷'}, CZE:{n:'Chequia',f:'🇨🇿'},
-  CAN:{n:'Canadá',f:'🇨🇦'}, SUI:{n:'Suiza',f:'🇨🇭'}, QAT:{n:'Qatar',f:'🇶🇦'}, BIH:{n:'Bosnia',f:'🇧🇦'},
+  MEX:{n:'México',f:'🇲🇽'}, RSA:{n:'Sudáfrica',f:'🇿🇦'}, KOR:{n:'Corea del Sur',f:'🇰🇷'}, CZE:{n:'República Checa',f:'🇨🇿'},
+  CAN:{n:'Canadá',f:'🇨🇦'}, SUI:{n:'Suiza',f:'🇨🇭'}, QAT:{n:'Qatar',f:'🇶🇦'}, BIH:{n:'Bosnia y Herzegovina',f:'🇧🇦'},
   BRA:{n:'Brasil',f:'🇧🇷'}, MAR:{n:'Marruecos',f:'🇲🇦'}, HAI:{n:'Haití',f:'🇭🇹'}, SCO:{n:'Escocia',f:'🏴󠁧󠁢󠁳󠁣󠁴󠁿'},
-  USA:{n:'EE.UU.',f:'🇺🇸'}, PAR:{n:'Paraguay',f:'🇵🇾'}, AUS:{n:'Australia',f:'🇦🇺'}, TUR:{n:'Turquía',f:'🇹🇷'},
-  GER:{n:'Alemania',f:'🇩🇪'}, CUW:{n:'Curazao',f:'🇨🇼'}, CIV:{n:'C.Marfil',f:'🇨🇮'}, ECU:{n:'Ecuador',f:'🇪🇨'},
-  NED:{n:'P.Bajos',f:'🇳🇱'}, JPN:{n:'Japón',f:'🇯🇵'}, TUN:{n:'Túnez',f:'🇹🇳'}, SWE:{n:'Suecia',f:'🇸🇪'},
-  BEL:{n:'Bélgica',f:'🇧🇪'}, EGY:{n:'Egipto',f:'🇪🇬'}, IRN:{n:'Irán',f:'🇮🇷'}, NZL:{n:'N.Zelanda',f:'🇳🇿'},
-  ESP:{n:'España',f:'🇪🇸'}, CPV:{n:'Cabo Verde',f:'🇨🇻'}, KSA:{n:'Arabia S.',f:'🇸🇦'}, URU:{n:'Uruguay',f:'🇺🇾'},
+  USA:{n:'Estados Unidos',f:'🇺🇸'}, PAR:{n:'Paraguay',f:'🇵🇾'}, AUS:{n:'Australia',f:'🇦🇺'}, TUR:{n:'Turquía',f:'🇹🇷'},
+  GER:{n:'Alemania',f:'🇩🇪'}, CUW:{n:'Curazao',f:'🇨🇼'}, CIV:{n:'Costa de Marfil',f:'🇨🇮'}, ECU:{n:'Ecuador',f:'🇪🇨'},
+  NED:{n:'Países Bajos',f:'🇳🇱'}, JPN:{n:'Japón',f:'🇯🇵'}, TUN:{n:'Túnez',f:'🇹🇳'}, SWE:{n:'Suecia',f:'🇸🇪'},
+  BEL:{n:'Bélgica',f:'🇧🇪'}, EGY:{n:'Egipto',f:'🇪🇬'}, IRN:{n:'Irán',f:'🇮🇷'}, NZL:{n:'Nueva Zelanda',f:'🇳🇿'},
+  ESP:{n:'España',f:'🇪🇸'}, CPV:{n:'Cabo Verde',f:'🇨🇻'}, KSA:{n:'Arabia Saudita',f:'🇸🇦'}, URU:{n:'Uruguay',f:'🇺🇾'},
   FRA:{n:'Francia',f:'🇫🇷'}, SEN:{n:'Senegal',f:'🇸🇳'}, IRQ:{n:'Irak',f:'🇮🇶'}, NOR:{n:'Noruega',f:'🇳🇴'},
   ARG:{n:'Argentina',f:'🇦🇷'}, ALG:{n:'Argelia',f:'🇩🇿'}, AUT:{n:'Austria',f:'🇦🇹'}, JOR:{n:'Jordania',f:'🇯🇴'},
-  POR:{n:'Portugal',f:'🇵🇹'}, COD:{n:'RD Congo',f:'🇨🇩'}, UZB:{n:'Uzbekistán',f:'🇺🇿'}, COL:{n:'Colombia',f:'🇨🇴'},
+  POR:{n:'Portugal',f:'🇵🇹'}, COD:{n:'Rep. Dem. del Congo',f:'🇨🇩'}, UZB:{n:'Uzbekistán',f:'🇺🇿'}, COL:{n:'Colombia',f:'🇨🇴'},
   ENG:{n:'Inglaterra',f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿'}, CRO:{n:'Croacia',f:'🇭🇷'}, GHA:{n:'Ghana',f:'🇬🇭'}, PAN:{n:'Panamá',f:'🇵🇦'}
 };
 
@@ -1202,7 +1202,7 @@ async function verPronosticosJugador(id){
     </div>
   </div>`;
   const porFecha={};
-  FX.forEach(p=>{(porFecha[p[1]]||(porFecha[p[1]]=[])).push(p);});
+  [...FX].sort((a,b)=>parseFechaPartido(a[1],a[2]).getTime()-parseFechaPartido(b[1],b[2]).getTime()).forEach(p=>{(porFecha[p[1]]||(porFecha[p[1]]=[])).push(p);});
   let html='';
   Object.entries(porFecha).forEach(([fecha,ps])=>{
     html+=`<div class="fecha-divider">${fecha}</div>`;
