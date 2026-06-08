@@ -431,7 +431,7 @@ async function init(){
       <div class="ico">✍️</div>
       <h2>Crear perfil</h2>
       <p style="margin-bottom:18px">Completá tus datos para sumarte al prode</p>
-      <input type="text" class="select-jugador" id="reg-nombre" placeholder="Tu nombre completo" autocomplete="off">
+      <input type="text" class="select-jugador" id="reg-nombre" placeholder="Tu nombre" autocomplete="off">
       <input type="tel" class="pin-input" id="reg-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="PIN ••••" autocomplete="off">
       <div class="login-help" style="margin:10px 0 14px">
         <p style="font-size:13px;margin-bottom:6px;color:var(--celeste-l)">${esc(PREGUNTA_SECRETA)}</p>
