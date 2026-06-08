@@ -345,6 +345,20 @@ document.addEventListener('click', e=>{
     if(a==='mostrar-registro')        { mostrarRegistro(); return; }
     if(a==='cancelar-registro')       { cancelarRegistro(); return; }
     if(a==='registrar-nuevo')         { registrarNuevo(); return; }
+    if(a==='copiar-cbu'){
+      const btn=e.target;
+      const original=btn.innerHTML;
+      btn.innerHTML='✅ Copiado';
+      btn.style.background='var(--verde)';
+      navigator.clipboard.writeText(CBU_PAGO)
+        .then(()=>{ toast('✅ CBU copiado','success'); })
+        .catch(()=>{ btn.innerHTML=original; btn.style.background='var(--dorado)'; toast('No se pudo copiar','error'); });
+      return;
+    }
+    if(a==='cerrar-modal-cbu'){
+      document.getElementById('modal-cbu')?.remove();
+      return;
+    }
   }
 });
 
@@ -534,8 +548,8 @@ function mostrarDatosTransferencia(){
         <div style="font-size:24px;font-weight:700;color:var(--dorado);margin-bottom:16px">$20.000</div>
         <div style="margin-bottom:8px;color:var(--texto-secundario);font-size:13px">CBU</div>
         <div style="font-family:monospace;font-size:15px;background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;letter-spacing:1px;margin-bottom:12px">${CBU_PAGO}</div>
-        <button onclick="navigator.clipboard.writeText('${CBU_PAGO}').then(()=>toast('✅ CBU copiado','success'))" style="background:var(--dorado);color:#000;border:none;border-radius:8px;padding:10px 24px;font-weight:700;cursor:pointer;width:100%;margin-bottom:8px">📋 Copiar CBU</button>
-        <button onclick="document.getElementById('modal-cbu').remove()" style="background:transparent;color:var(--texto-secundario);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 24px;cursor:pointer;width:100%">Cerrar</button>
+        <button data-action="copiar-cbu" style="background:var(--dorado);color:#000;border:none;border-radius:8px;padding:10px 24px;font-weight:700;cursor:pointer;width:100%;margin-bottom:8px">📋 Copiar CBU</button>
+        <button data-action="cerrar-modal-cbu" style="background:transparent;color:var(--texto-secundario);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 24px;cursor:pointer;width:100%">Cerrar</button>
       </div>
     </div>`;
   document.body.insertAdjacentHTML('beforeend',html);
