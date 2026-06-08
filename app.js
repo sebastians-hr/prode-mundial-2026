@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // PRODE CHAQUIENSE · Mundial 2026
 // ============================================================
 
@@ -28,7 +28,7 @@ const JUGADORES_DEFAULTS = [
 ];
 
 const ADMIN_PASS  = 'sebasuez26';
-const MP_LINK     = 'https://mpago.la/2zZxFZx';
+const CBU_PAGO    = '0000003100056133761644';
 const FICHAS_INI  = 104;
 const ENTRADA     = 20000;
 
@@ -328,7 +328,7 @@ document.addEventListener('click', e=>{
 
   if(ac){
     const a = ac.dataset.action;
-    if(a==='pagar')                   { window.open(MP_LINK,'_blank'); return; }
+    if(a==='pagar')                   { mostrarDatosTransferencia(); return; }
     if(a==='marcar-pago')             { marcarPago(); return; }
     if(a==='desmarcar-pago')          { desmarcarPago(); return; }
     if(a==='cerrar-sesion')           { cerrarSesion(); return; }
@@ -525,6 +525,21 @@ function cerrarSesion(){
   location.reload();
 }
 
+function mostrarDatosTransferencia(){
+  const html = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center" id="modal-cbu" onclick="if(event.target.id==='modal-cbu')this.remove()">
+      <div style="background:var(--card);border-radius:12px;padding:24px;max-width:340px;width:90%;text-align:center">
+        <div style="font-family:var(--condensed);font-size:20px;font-weight:700;margin-bottom:16px">Datos para transferencia</div>
+        <div style="margin-bottom:8px;color:var(--texto-secundario);font-size:13px">Monto</div>
+        <div style="font-size:24px;font-weight:700;color:var(--dorado);margin-bottom:16px">$20.000</div>
+        <div style="margin-bottom:8px;color:var(--texto-secundario);font-size:13px">CBU</div>
+        <div style="font-family:monospace;font-size:15px;background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;letter-spacing:1px;margin-bottom:12px">${CBU_PAGO}</div>
+        <button onclick="navigator.clipboard.writeText('${CBU_PAGO}').then(()=>toast('✅ CBU copiado','success'))" style="background:var(--dorado);color:#000;border:none;border-radius:8px;padding:10px 24px;font-weight:700;cursor:pointer;width:100%;margin-bottom:8px">📋 Copiar CBU</button>
+        <button onclick="document.getElementById('modal-cbu').remove()" style="background:transparent;color:var(--texto-secundario);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 24px;cursor:pointer;width:100%">Cerrar</button>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
 async function marcarPago(){
   if(!S.jugador || S.jugador.pago) return;
   if(!confirm('¿Confirmás que ya pagaste tu entrada de $20.000?')) return;
@@ -862,7 +877,7 @@ function renderInicio(){
     if(S.jugador.pago){
       pagoArea.innerHTML = `<div class="card" style="text-align:center;margin-bottom:12px"><div style="color:var(--verde);font-family:var(--condensed);font-weight:700;font-size:16px;letter-spacing:0.5px;margin-bottom:8px">✅ Pagaste · Estás en el pozo</div><button class="btn-grande" style="background:rgba(230,57,70,0.15);color:var(--rojo);font-size:13px;padding:8px 16px" data-action="desmarcar-pago">↩ Desconfirmar pago</button></div>`;
     } else {
-      pagoArea.innerHTML = `<button class="btn-grande btn-dorado" data-action="marcar-pago">✅ Ya pagué mi entrada</button><button class="btn-grande btn-mp" data-action="pagar">💳 Pagar por Mercado Pago</button>`;
+      pagoArea.innerHTML = `<button class="btn-grande btn-dorado" data-action="marcar-pago">✅ Ya pagué mi entrada</button><button class="btn-grande btn-mp" data-action="pagar">🏦 Pagar por transferencia</button>`;
     }
   }
 }
