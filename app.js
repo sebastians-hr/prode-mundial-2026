@@ -860,6 +860,7 @@ function renderPartidos(){
   if(!cont) return;
 
   let lista = S.faseFiltro==='todos' ? FX : FX.filter(p=>p[5]===S.faseFiltro);
+  lista = [...lista].sort((a,b)=> parseFechaPartido(a[1],a[2]).getTime() - parseFechaPartido(b[1],b[2]).getTime());
 
   const porFecha={};
   lista.forEach(p=>{ (porFecha[p[1]]||(porFecha[p[1]]=[])).push(p); });
