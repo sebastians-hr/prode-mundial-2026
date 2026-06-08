@@ -285,7 +285,7 @@ function irA(tab){
 // ============================================================
 // EVENT DELEGATION — CLICKS
 // ============================================================
-document.addEventListener('click', e=>{
+document.addEventListener('click', async e=>{
   const nav   = e.target.closest('[data-nav]');
   const ac    = e.target.closest('[data-action]');
   const ap    = e.target.closest('[data-apuesta]');
@@ -357,6 +357,18 @@ document.addEventListener('click', e=>{
     }
     if(a==='cerrar-modal-cbu'){
       document.getElementById('modal-cbu')?.remove();
+      return;
+    }
+    if(a==='toggle-pago-admin'){
+      const jid=e.target.dataset.id;
+      const j=await fbGetJugador(jid);
+      if(!j) return;
+      const nuevo=!j.pago;
+      if(!confirm(`${nuevo?'Marcar pagado':'Quitar pago'}: ${j.nombre}?`)) return;
+      j.pago=nuevo;
+      await fbSetJugador(j);
+      await recalcRanking();
+      toast(`${j.nombre}: pago ${nuevo?'registrado ✅':'removido'}`, nuevo?'success':'error');
       return;
     }
   }
@@ -1170,7 +1182,10 @@ function renderRanking(){
   cont.innerHTML = S.ranking.map((r,i)=>{
     const pc=i===0?'p1':i===1?'p2':i===2?'p3':'';
     const yo=S.jugador&&r.id===S.jugador.id?' yo':'';
-    const tag=r.pago?'<span class="pago-tag">PAGÓ</span>':'<span class="nopago-tag">DEBE</span>';
+    const adminAttr = S.isAdmin ? `data-action="toggle-pago-admin" data-id="${r.id}" style="cursor:pointer;text-decoration:underline dotted"` : '';
+    const tag = r.pago
+      ? `<span class="pago-tag" ${adminAttr}>PAGÓ${S.isAdmin?' ✎':''}</span>`
+      : `<span class="nopago-tag" ${adminAttr}>DEBE${S.isAdmin?' ✎':''}</span>`;
     return `<div class="ranking-row${yo}" data-action="ver-pronosticos" data-id="${r.id}" style="cursor:pointer">
       <div class="ranking-pos ${pc}">${i+1}</div>
       <div class="ranking-info">
