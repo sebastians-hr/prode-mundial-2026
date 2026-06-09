@@ -340,6 +340,7 @@ document.addEventListener('click', async e=>{
     if(a==='actualizar-cuotas')       { actualizarCuotas(); return; }
     if(a==='resetear')                { resetearTodo(); return; }
     if(a==='resetear-pin')            { resetearPin(); return; }
+    if(a==='invertidos-walter'){ aplicarInvertidosWalter(); return; }
     if(a==='ver-pronosticos')         { verPronosticosJugador(ac.dataset.id); return; }
     if(a==='cerrar-pronosticos-ajenos'){ renderRanking(); return; }
     if(a==='mostrar-registro')        { mostrarRegistro(); return; }
@@ -721,6 +722,27 @@ async function resetearPin(){
   jActual.pin = '';
   await fbSetJugador(jActual);
   toast(`PIN de ${j.nombre} reseteado · va a elegir uno nuevo al entrar`,'success');
+}
+
+async function aplicarInvertidosWalter(){
+  if(!S.isAdmin){ toast('Solo admin','error'); return; }
+  const jgs = await fbGetJugadores();
+  const fuente = jgs.find(j=>j.nombre.toLowerCase().includes('santi')&&j.nombre.toLowerCase().includes('teitel'));
+  const target = jgs.find(j=>j.nombre.toLowerCase().includes('walter')&&j.nombre.toLowerCase().includes('korn'));
+  if(!fuente){ toast('No encontré a Santi Teitel','error'); return; }
+  if(!target){ toast('No encontré a Walter Korn','error'); return; }
+  if(!confirm(`Copiar pronósticos de ${fuente.nombre} invertidos a ${target.nombre}?\nEsto reemplaza todo lo que Walter tenga cargado.`)) return;
+  const inv={};
+  for(const [mid,pron] of Object.entries(fuente.pronosticos||{})){
+    if(!pron||!pron.op) continue;
+    const opInv = pron.op==='1'?'2': pron.op==='2'?'1':'1';
+    const tieneExacto = pron.gL!==null&&pron.gL!==undefined&&pron.gV!==null&&pron.gV!==undefined;
+    inv[mid]={ op:opInv, gL:tieneExacto?pron.gV:null, gV:tieneExacto?pron.gL:null };
+  }
+  target.pronosticos = inv;
+  await fbSetJugador(target);
+  await recalcRanking();
+  toast(`Listo: pronósticos de Walter Korn actualizados ✅`,'success');
 }
 
 // Actualizar cuotas de un partido (admin)
