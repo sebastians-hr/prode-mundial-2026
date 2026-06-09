@@ -736,8 +736,10 @@ async function aplicarInvertidosWalter(){
   for(const [mid,pron] of Object.entries(fuente.pronosticos||{})){
     if(!pron||!pron.op) continue;
     const opInv = pron.op==='1'?'2': pron.op==='2'?'1':'1';
-    const tieneExacto = pron.gL!==null&&pron.gL!==undefined&&pron.gV!==null&&pron.gV!==undefined;
-    inv[mid]={ op:opInv, gL:tieneExacto?pron.gV:null, gV:tieneExacto?pron.gL:null };
+    let gLInv, gVInv;
+    if(pron.op==='X'){ gLInv=1; gVInv=0; }
+    else { const t=pron.gL!=null&&pron.gV!=null; gLInv=t?pron.gV:null; gVInv=t?pron.gL:null; }
+    inv[mid]={ op:opInv, gL:gLInv, gV:gVInv };
   }
   target.pronosticos = inv;
   await fbSetJugador(target);
