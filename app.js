@@ -372,6 +372,8 @@ document.addEventListener('click', async e=>{
       toast(`${j.nombre}: pago ${nuevo?'registrado ✅':'removido'}`, nuevo?'success':'error');
       return;
     }
+    if(a==='ver-evolucion'){ abrirEvolucion(); return; }
+    if(a==='cerrar-evolucion'){ document.getElementById('modal-evolucion')?.remove(); return; }
   }
 });
 
@@ -858,13 +860,85 @@ function calcFichas(j){
         fallados++;
       }
     } else {
-      pendientes++;
+      const ap = normPron(pron[p[0]]);
+      if(!p[3].startsWith('?') && !esCerrado(p) && !ap.op) pendientes++;
     }
   });
   return {
     fichas: Math.round(fichas*100)/100,
     aciertos, exactos, fallados, sinApostar, pendientes
   };
+}
+
+function calcularEvolucion(jugadores){
+  const jugados = FX.filter(p=>S.resultados[p[0]]?.real)
+    .sort((a,b)=>parseFechaPartido(a[1],a[2]).getTime()-parseFechaPartido(b[1],b[2]).getTime());
+  const fechas=[];
+  jugados.forEach(p=>{ if(!fechas.includes(p[1])) fechas.push(p[1]); });
+  const series = jugadores.map(j=>{
+    const pron=j.pronosticos||{};
+    let f=FICHAS_INI;
+    const pts=[f];
+    fechas.forEach(fe=>{
+      jugados.filter(p=>p[1]===fe).forEach(p=>{
+        const r=S.resultados[p[0]];
+        const ap=normPron(pron[p[0]]);
+        const [cL,cE,cV]=getCuotas(p[0],p[7],p[8],p[9]);
+        f-=1;
+        if(ap.op && ap.op===r.real){
+          const cuota={'1':cL,'X':cE,'2':cV}[ap.op]||1;
+          f += (ap.gL!==null&&ap.gV!==null&&ap.gL===r.gL&&ap.gV===r.gV)? cuota*2 : cuota;
+        }
+      });
+      pts.push(Math.round(f*100)/100);
+    });
+    return {nombre:j.nombre,id:j.id,pts};
+  });
+  return {fechas,series};
+}
+
+async function abrirEvolucion(){
+  const jugadores = await fbGetJugadores();
+  const {fechas,series} = calcularEvolucion(jugadores);
+  let cuerpo;
+  if(!fechas.length){
+    cuerpo='<div style="text-align:center;padding:40px 10px;color:#9fb3cc">El gráfico aparece cuando se jueguen los primeros partidos ⚽</div>';
+  } else {
+    const W=700,H=380,padL=46,padR=14,padT=16,padB=34;
+    const todos=series.flatMap(s=>s.pts);
+    let yMin=Math.min(...todos), yMax=Math.max(...todos);
+    if(yMin===yMax){yMin-=5;yMax+=5;}
+    const span=yMax-yMin; yMin-=span*0.08; yMax+=span*0.08;
+    const n=fechas.length+1;
+    const x=i=> padL + (n===1?0:(i*(W-padL-padR)/(n-1)));
+    const y=v=> padT + (yMax-v)*(H-padT-padB)/(yMax-yMin);
+    const colores=['#74acdf','#f5b800','#e74c3c','#2ecc71','#9b59b6','#e67e22','#1abc9c','#fd79a8','#00cec9','#fab1a0','#6c5ce7','#ffeaa7','#55efc4','#ff7675','#a29bfe','#81ecec','#d63031'];
+    let grid='';
+    for(let g=0;g<=4;g++){
+      const v=yMin+(yMax-yMin)*g/4, yy=y(v);
+      grid+=`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="rgba(255,255,255,0.08)"/>`+`<text x="${padL-6}" y="${yy+4}" font-size="11" fill="#9fb3cc" text-anchor="end">${v.toFixed(0)}</text>`;
+    }
+    const cada=Math.max(1,Math.ceil(n/6));
+    let labels=`<text x="${x(0)}" y="${H-10}" font-size="10" fill="#9fb3cc" text-anchor="middle">Inicio</text>`;
+    fechas.forEach((f,i)=>{ if((i+1)%cada===0||i===fechas.length-1) labels+=`<text x="${x(i+1)}" y="${H-10}" font-size="10" fill="#9fb3cc" text-anchor="middle">${f}</text>`; });
+    const ordenadas=[...series].sort((a,b)=>(a.id===S.jugador?.id)-(b.id===S.jugador?.id));
+    let lineas='';
+    ordenadas.forEach(s=>{
+      const idx=series.indexOf(s);
+      const col=colores[idx%colores.length];
+      const esYo=s.id===S.jugador?.id;
+      const ptsStr=s.pts.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+      lineas+=`<polyline points="${ptsStr}" fill="none" stroke="${col}" stroke-width="${esYo?4:1.8}" stroke-linejoin="round" stroke-linecap="round" opacity="${esYo?1:0.75}"/>`;
+    });
+    const leyenda=series.map((s,i)=>`<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 8px 3px 0;font-size:12px;color:#dfe9f5"><span style="width:12px;height:12px;border-radius:3px;background:${colores[i%colores.length]};display:inline-block"></span>${esc(s.nombre)}${s.id===S.jugador?.id?' (vos)':''}</span>`).join('');
+    cuerpo=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" xmlns="http://www.w3.org/2000/svg">${grid}${labels}${lineas}</svg><div style="margin-top:10px;display:flex;flex-wrap:wrap">${leyenda}</div>`;
+  }
+  const ov=document.createElement('div');
+  ov.id='modal-evolucion';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
+  ov.innerHTML=`<div style="max-width:760px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px"><h3 style="margin:0 0 12px;color:var(--dorado,#f5b800);font-family:var(--condensed)">📈 EVOLUCIÓN DE FICHAS</h3>${cuerpo}<button class="btn-grande btn-secundario" data-action="cerrar-evolucion" style="margin-top:14px;width:100%">Cerrar</button></div>`;
+  ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
 }
 
 async function recalcRanking(){
