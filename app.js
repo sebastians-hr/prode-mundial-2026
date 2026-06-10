@@ -1339,24 +1339,21 @@ async function verPronosticosJugador(id){
 // BACKUP
 // ============================================================
 async function descargarBackup(){
+  if(!S.isAdmin){ toast('Solo admin','error'); return; }
   try{
     const jugadores = await fbGetJugadores();
     const resultados = await fbGetResultados();
     const cuotas = await fbGetCuotas();
-    if(!S.isAdmin && !S.jugador){ toast('Iniciá sesión primero','error'); return; }
-    const dataJugadores = S.isAdmin ? jugadores : jugadores.filter(j=>j.id===S.jugador.id).map(j=>{
-      const {pin, ...resto} = j;
-      return resto;
-    });
-    const backup = { generado:new Date().toISOString(), app:'prode-mundial-2026', tipo:S.isAdmin?'completo':'personal', jugadores:dataJugadores, resultados, cuotas };
+    const dataJugadores = jugadores;
+    const backup = { generado:new Date().toISOString(), app:'prode-mundial-2026', tipo:'completo', jugadores:dataJugadores, resultados, cuotas };
     const blob = new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
     const a = document.createElement('a');
     const ts = new Date().toISOString().slice(0,16).replace(/[T:]/g,'-');
     a.href = URL.createObjectURL(blob);
-    a.download = S.isAdmin ? `prode-backup-completo-${ts}.json` : `prode-mis-pronosticos-${ts}.json`;
+    a.download = `prode-backup-completo-${ts}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
-    toast(S.isAdmin ? `Backup completo: ${jugadores.length} jugadores 💾` : 'Tus pronósticos descargados 💾','success');
+    toast(`Backup completo: ${jugadores.length} jugadores 💾`,'success');
   }catch(err){
     console.error(err);
     toast('Error al generar backup','error');
