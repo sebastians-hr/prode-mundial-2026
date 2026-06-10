@@ -382,6 +382,9 @@ document.addEventListener('click', async e=>{
       toast(`${j.nombre}: pago ${nuevo?'registrado ✅':'removido'}`, nuevo?'success':'error');
       return;
     }
+    if(a==='ver-diario'){ abrirDiario(); return; }
+    if(a==='cerrar-diario'){ document.getElementById('modal-diario')?.remove(); return; }
+    if(a==='compartir-diario'){ compartirDiario(); return; }
     if(a==='ver-evolucion'){ abrirEvolucion(); return; }
     if(a==='cerrar-evolucion'){ document.getElementById('modal-evolucion')?.remove(); return; }
   }
@@ -907,6 +910,115 @@ function calcularEvolucion(jugadores){
   return {fechas,series};
 }
 
+function calcMovimientosYTitulos(todos){
+  S.movimientos = {};
+  S.titulos = {};
+  try{
+    const {fechas, series} = calcularEvolucion(todos);
+    const n = fechas.length;
+    if(n >= 2){
+      const posEn = idx => [...series].sort((a,b)=>b.pts[idx]-a.pts[idx]).map(s=>s.id);
+      const antes = posEn(n-1), ahora = posEn(n);
+      ahora.forEach((id,i)=>{ S.movimientos[id] = antes.indexOf(id) - i; });
+    }
+    const stats = todos.map(j=>{
+      const pron = j.pronosticos||{};
+      let sumaCuota=0, jugadas=0, alFavorito=0;
+      FX.forEach(p=>{
+        const ap = normPron(pron[p[0]]);
+        if(!ap.op || !S.resultados[p[0]]?.real) return;
+        const [cL,cE,cV] = getCuotas(p[0],p[7],p[8],p[9]);
+        const cuota = {'1':cL,'X':cE,'2':cV}[ap.op]||1;
+        sumaCuota += cuota; jugadas++;
+        if(cuota === Math.min(cL,cE,cV)) alFavorito++;
+      });
+      const r = S.ranking.find(x=>x.id===j.id) || {};
+      return { id:j.id, exactos:r.exactos||0, sinApostar:r.sinApostar||0,
+        promCuota: jugadas? sumaCuota/jugadas : 0,
+        pctFavorito: jugadas? alFavorito/jugadas : 0, jugadas };
+    });
+    const dar=(id,t)=>{ (S.titulos[id]||(S.titulos[id]=[])).push(t); };
+    const vis = [...stats].sort((a,b)=>b.exactos-a.exactos)[0];
+    if(vis && vis.exactos>=1) dar(vis.id,'🔮 El Visionario');
+    const conMin = stats.filter(s=>s.jugadas>=5);
+    if(conMin.length){
+      const kam = [...conMin].sort((a,b)=>b.promCuota-a.promCuota)[0];
+      if(kam) dar(kam.id,'💣 El Kamikaze');
+      const pf = [...conMin].sort((a,b)=>b.pctFavorito-a.pctFavorito)[0];
+      if(pf && pf.pctFavorito>=0.7) dar(pf.id,'🧊 El Pecho Frío');
+    }
+    const fan = [...stats].sort((a,b)=>b.sinApostar-a.sinApostar)[0];
+    if(fan && fan.sinApostar>=3) dar(fan.id,'👻 El Fantasma');
+  }catch(e){ console.error('movimientos/titulos', e); }
+}
+
+function calcDiario(todos){
+  const conRes = FX.filter(p=>S.resultados[p[0]]?.real);
+  if(!conRes.length) return null;
+  const orden = [...conRes].sort((a,b)=>parseFechaPartido(a[1],a[2])-parseFechaPartido(b[1],b[2]));
+  const fecha = orden[orden.length-1][1];
+  const partidosDia = conRes.filter(p=>p[1]===fecha);
+  const {fechas, series} = calcularEvolucion(todos);
+  const i = fechas.indexOf(fecha);
+  const deltas = series.map(s=>({id:s.id, nombre:s.nombre, delta: Math.round((s.pts[i+1]-s.pts[i])*100)/100 }))
+    .sort((a,b)=>b.delta-a.delta);
+  let bat=null, sorp=null;
+  partidosDia.forEach(p=>{
+    const r=S.resultados[p[0]];
+    const [cL,cE,cV]=getCuotas(p[0],p[7],p[8],p[9]);
+    const cuotaG={'1':cL,'X':cE,'2':cV}[r.real];
+    const acertaron = todos.filter(j=>normPron((j.pronosticos||{})[p[0]]).op===r.real).map(j=>j.nombre);
+    if(acertaron.length && (!bat || cuotaG>bat.cuota)) bat={cuota:cuotaG, nombres:acertaron, p};
+    if(!sorp || acertaron.length<sorp.aciertos) sorp={p, aciertos:acertaron.length};
+  });
+  return {fecha, ganador:deltas[0], perdedor:deltas[deltas.length-1], bat, sorp, top3:S.ranking.slice(0,3), totalJug:todos.length};
+}
+
+function textoDiario(d){
+  const np=p=>`${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
+  let t=`📰 DIARIO DEL FORO · ${d.fecha}\n`;
+  t+=`🏆 Ganador del día: ${d.ganador.nombre} (${d.ganador.delta>=0?'+':''}${d.ganador.delta} fichas)\n`;
+  t+=`📉 Día negro: ${d.perdedor.nombre} (${d.perdedor.delta>=0?'+':''}${d.perdedor.delta})\n`;
+  if(d.bat) t+=`🎯 Batacazo: cuota ${d.bat.cuota.toFixed(2)} en ${np(d.bat.p)} (${d.bat.nombres.join(', ')})\n`;
+  if(d.sorp) t+=`😱 Sorpresa: ${np(d.sorp.p)} · acertaron ${d.sorp.aciertos}/${d.totalJug}\n`;
+  t+=`🔝 Top 3: `+d.top3.map((r,i)=>`${i+1}° ${r.nombre} (${r.fichas})`).join(' · ');
+  t+=`\n\n⚽ ${location.origin}${location.pathname}`;
+  return t;
+}
+
+async function abrirDiario(){
+  const todos = await fbGetJugadores();
+  const d = calcDiario(todos);
+  S._ultimoDiario = d;
+  let cuerpo;
+  if(!d){
+    cuerpo='<div style="text-align:center;padding:40px 10px;color:#9fb3cc">El diario sale después de la primera jornada ⚽</div>';
+  } else {
+    const np=p=>`${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
+    const fila=(emoji,titulo,detalle)=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)"><div style="font-size:22px">${emoji}</div><div><div style="font-family:var(--condensed);font-weight:700;font-size:13px;letter-spacing:0.5px;color:var(--dorado,#f5b800)">${titulo}</div><div style="font-size:14px;color:#dfe9f5">${detalle}</div></div></div>`;
+    cuerpo =
+      fila('🏆','GANADOR DEL DÍA', `${esc(d.ganador.nombre)} (${d.ganador.delta>=0?'+':''}${d.ganador.delta} fichas)`) +
+      fila('📉','EL DÍA NEGRO', `${esc(d.perdedor.nombre)} (${d.perdedor.delta>=0?'+':''}${d.perdedor.delta} fichas)`) +
+      (d.bat? fila('🎯','EL BATACAZO', `Cuota ${d.bat.cuota.toFixed(2)} en ${np(d.bat.p)} · ${d.bat.nombres.map(esc).join(', ')}`):'') +
+      (d.sorp? fila('😱','LA SORPRESA', `${np(d.sorp.p)} · lo acertaron ${d.sorp.aciertos} de ${d.totalJug}`):'') +
+      fila('🔝','TOP 3', d.top3.map((r,i)=>`${i+1}° ${esc(r.nombre)} (${r.fichas})`).join(' · ')) +
+      `<button data-action="compartir-diario" style="margin-top:14px;width:100%;background:var(--dorado,#f5b800);color:#000;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:15px;cursor:pointer">📲 Compartir al grupo</button>`;
+  }
+  const ov=document.createElement('div');
+  ov.id='modal-diario';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
+  ov.innerHTML=`<div style="max-width:560px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px"><h3 style="margin:0 0 6px;color:var(--dorado,#f5b800);font-family:var(--condensed)">📰 DIARIO DEL FORO${d?` · ${d.fecha}`:''}</h3>${cuerpo}<button class="btn-grande btn-secundario" data-action="cerrar-diario" style="margin-top:10px;width:100%">Cerrar</button></div>`;
+  ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
+
+async function compartirDiario(){
+  const d=S._ultimoDiario; if(!d) return;
+  const text=textoDiario(d);
+  if(navigator.share){ try{ await navigator.share({text}); }catch(e){} }
+  else { try{ await navigator.clipboard.writeText(text); toast('Resumen copiado 📋','success'); }catch(e){ toast('No se pudo copiar','error'); } }
+}
+
 async function abrirEvolucion(){
   const jugadores = await fbGetJugadores();
   const {fechas,series} = calcularEvolucion(jugadores);
@@ -956,6 +1068,7 @@ async function recalcRanking(){
   S.totalJugadores = todos.length;
   S.ranking = todos.map(j=>({id:j.id,nombre:j.nombre,pago:j.pago,...calcFichas(j)}))
     .sort((a,b)=>b.fichas-a.fichas||b.aciertos-a.aciertos);
+  calcMovimientosYTitulos(todos);
   renderRanking();
   renderUserBars();
   actualizarPozo();
@@ -1290,6 +1403,9 @@ function renderRanking(){
   cont.innerHTML = S.ranking.map((r,i)=>{
     const pc=i===0?'p1':i===1?'p2':i===2?'p3':'';
     const yo=S.jugador&&r.id===S.jugador.id?' yo':'';
+    const dlt=S.movimientos?.[r.id]||0;
+    const mov=dlt>0?`<span style="color:#2ecc71;font-size:12px;font-weight:700"> ▲${dlt}</span>`:(dlt<0?`<span style="color:#e74c3c;font-size:12px;font-weight:700"> ▼${-dlt}</span>`:'');
+    const badges=(S.titulos?.[r.id]||[]).map(t=>`<span style="display:inline-block;background:rgba(245,184,0,0.15);color:var(--dorado,#f5b800);font-size:10px;padding:2px 7px;border-radius:8px;margin:2px 6px 0 0;font-weight:700">${t}</span>`).join('');
     const adminAttr = S.isAdmin ? `data-action="toggle-pago-admin" data-id="${r.id}" style="cursor:pointer;text-decoration:underline dotted"` : '';
     const tag = r.pago
       ? `<span class="pago-tag" ${adminAttr}>PAGÓ${S.isAdmin?' ✎':''}</span>`
@@ -1297,8 +1413,9 @@ function renderRanking(){
     return `<div class="ranking-row${yo}" data-action="ver-pronosticos" data-id="${r.id}" style="cursor:pointer">
       <div class="ranking-pos ${pc}">${i+1}</div>
       <div class="ranking-info">
-        <div class="ranking-nombre">${esc(r.nombre)} ${tag}</div>
+        <div class="ranking-nombre">${esc(r.nombre)}${mov} ${tag}</div>
         <div class="ranking-stats">${r.aciertos} aciertos · ${r.exactos} exactos · ${r.pendientes} pendientes</div>
+        ${badges?`<div>${badges}</div>`:''}
       </div>
       <div class="ranking-fichas">${r.fichas}</div>
     </div>`;
