@@ -216,6 +216,16 @@ function parseFechaPartido(fecha, hora){
   return new Date(`2026-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}T${hh}:${mm}:00-03:00`);
 }
 
+const FECHA3_IDS = (()=>{
+  const porGrupo = {};
+  FX.filter(p=>p[5]==='grupos').forEach(p=>{(porGrupo[p[6]]||(porGrupo[p[6]]=[])).push(p);});
+  const ids = new Set();
+  Object.values(porGrupo).forEach(arr=>{
+    [...arr].sort((a,b)=>parseFechaPartido(a[1],a[2])-parseFechaPartido(b[1],b[2])).slice(-2).forEach(p=>ids.add(p[0]));
+  });
+  return ids;
+})();
+
 // Partido cerrado = tiene resultado real OR faltan ≤ 2 min para empezar
 function esCerrado(p){
   if(S.resultados[p[0]]?.real) return true;
@@ -1142,7 +1152,7 @@ function htmlPartidoAjeno(p, jugador){
   const real = S.resultados[id];
 
   const fasesAbiertas = ['grupos','r32','r16'];
-  const visible = fasesAbiertas.includes(fase) || !!real?.real;
+  const visible = (fasesAbiertas.includes(fase) && !FECHA3_IDS.has(id)) || !!real?.real;
 
   const gt = fase==='grupos' ? `Grupo ${grupo}`
     : ({r32:'R32',r16:'Octavos',qf:'Cuartos',sf:'Semis'})[fase]
@@ -1333,25 +1343,20 @@ async function descargarBackup(){
     const jugadores = await fbGetJugadores();
     const resultados = await fbGetResultados();
     const cuotas = await fbGetCuotas();
-    const FASE_BY_ID = Object.fromEntries(FX.map(p=>[p[0],p[5]]));
-    const ocultas = ['qf','sf','final'];
-    const dataJugadores = S.isAdmin ? jugadores : jugadores.map(j=>{
+    if(!S.isAdmin && !S.jugador){ toast('Iniciá sesión primero','error'); return; }
+    const dataJugadores = S.isAdmin ? jugadores : jugadores.filter(j=>j.id===S.jugador.id).map(j=>{
       const {pin, ...resto} = j;
-      const pron = Object.fromEntries(Object.entries(j.pronosticos||{}).filter(([mid])=>{
-        const fase = FASE_BY_ID[mid];
-        return !(ocultas.includes(fase) && !S.resultados[mid]?.real);
-      }));
-      return {...resto, pronosticos: pron};
+      return resto;
     });
-    const backup = { generado:new Date().toISOString(), app:'prode-mundial-2026', tipo:S.isAdmin?'completo':'publico', jugadores:dataJugadores, resultados, cuotas };
+    const backup = { generado:new Date().toISOString(), app:'prode-mundial-2026', tipo:S.isAdmin?'completo':'personal', jugadores:dataJugadores, resultados, cuotas };
     const blob = new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
     const a = document.createElement('a');
     const ts = new Date().toISOString().slice(0,16).replace(/[T:]/g,'-');
     a.href = URL.createObjectURL(blob);
-    a.download = `prode-backup${S.isAdmin?'-completo':''}-${ts}.json`;
+    a.download = S.isAdmin ? `prode-backup-completo-${ts}.json` : `prode-mis-pronosticos-${ts}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
-    toast(`Backup descargado: ${jugadores.length} jugadores 💾`,'success');
+    toast(S.isAdmin ? `Backup completo: ${jugadores.length} jugadores 💾` : 'Tus pronósticos descargados 💾','success');
   }catch(err){
     console.error(err);
     toast('Error al generar backup','error');
