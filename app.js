@@ -961,7 +961,7 @@ function actualizarPozo(){
   const elInfo  = document.getElementById('pozo-info');
   const elRegla = document.getElementById('pozo-regla');
   if(elMonto) elMonto.textContent = '$' + total.toLocaleString('es-AR');
-  if(elInfo)  elInfo.textContent  = `${pagados} de ${S.totalJugadores} pagaron · El campeón se lleva todo`;
+  if(elInfo)  elInfo.textContent  = `${pagados} de ${S.totalJugadores} pagaron · Pozo de la fase de grupos`;
   if(elRegla) elRegla.textContent = `$${total.toLocaleString('es-AR')}`;
 }
 
