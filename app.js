@@ -338,8 +338,8 @@ document.addEventListener('click', async e=>{
     if(a==='agregar-participante')    { agregarParticipante(); return; }
     if(a==='eliminar-participante')   { eliminarParticipante(); return; }
     if(a==='actualizar-cuotas')       { actualizarCuotas(); return; }
-    if(a==='resetear')                { resetearTodo(); return; }
     if(a==='resetear-pin')            { resetearPin(); return; }
+    if(a==='descargar-backup')        { descargarBackup(); return; }
     if(a==='invertidos-walter'){ aplicarInvertidosWalter(); return; }
     if(a==='ver-pronosticos')         { verPronosticosJugador(ac.dataset.id); return; }
     if(a==='cerrar-pronosticos-ajenos'){ renderRanking(); return; }
@@ -1326,23 +1326,36 @@ async function verPronosticosJugador(id){
 }
 
 // ============================================================
-// RESET
+// BACKUP
 // ============================================================
-async function resetearTodo(){
-  if(!S.isAdmin){ toast('Solo admin','error'); return; }
-  if(!confirm('⚠️ ¿BORRAR TODO? Pronósticos, PINs y resultados. NO se puede deshacer.')) return;
-  if(!confirm('¿Seguro?')) return;
-  const todos=await fbGetJugadores();
-  for(const j of todos){
-    await setDoc(doc(db,'jugadores',j.id),{
-      id:j.id,nombre:j.nombre,pin:'',pago:false,pronosticos:{},
-      fechaCreacion:new Date().toISOString()
+async function descargarBackup(){
+  try{
+    const jugadores = await fbGetJugadores();
+    const resultados = await fbGetResultados();
+    const cuotas = await fbGetCuotas();
+    const FASE_BY_ID = Object.fromEntries(FX.map(p=>[p[0],p[5]]));
+    const ocultas = ['qf','sf','final'];
+    const dataJugadores = S.isAdmin ? jugadores : jugadores.map(j=>{
+      const {pin, ...resto} = j;
+      const pron = Object.fromEntries(Object.entries(j.pronosticos||{}).filter(([mid])=>{
+        const fase = FASE_BY_ID[mid];
+        return !(ocultas.includes(fase) && !S.resultados[mid]?.real);
+      }));
+      return {...resto, pronosticos: pron};
     });
+    const backup = { generado:new Date().toISOString(), app:'prode-mundial-2026', tipo:S.isAdmin?'completo':'publico', jugadores:dataJugadores, resultados, cuotas };
+    const blob = new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0,16).replace(/[T:]/g,'-');
+    a.href = URL.createObjectURL(blob);
+    a.download = `prode-backup${S.isAdmin?'-completo':''}-${ts}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+    toast(`Backup descargado: ${jugadores.length} jugadores 💾`,'success');
+  }catch(err){
+    console.error(err);
+    toast('Error al generar backup','error');
   }
-  await setDoc(doc(db,'resultados','main'),{resultados:{}});
-  localStorage.removeItem('ps');
-  sessionStorage.removeItem('pa');
-  setTimeout(()=>location.reload(),500);
 }
 
 // ============================================================
