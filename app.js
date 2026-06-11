@@ -1379,7 +1379,15 @@ function htmlPartido(p){
                data-score-id="${id}" data-campo="gV"
                value="${mia.gV!==null?mia.gV:''}">
       </div>
-    </div>` : (real && mia.gL!==null && !cerrado ? '' : '');
+    </div>` : ((mia.gL!==null && mia.gV!==null) ? `
+    <div class="score-exacto">
+      <span class="score-lbl">Tu resultado exacto:</span>
+      <div class="score-row">
+        <span class="score-in" style="display:flex;align-items:center;justify-content:center">${mia.gL}</span>
+        <span class="score-guion">-</span>
+        <span class="score-in" style="display:flex;align-items:center;justify-content:center">${mia.gV}</span>
+      </div>
+    </div>` : '');
 
   return `<div class="partido ${clase}">
     <div class="partido-meta">
