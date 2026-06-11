@@ -382,6 +382,8 @@ document.addEventListener('click', async e=>{
       toast(`${j.nombre}: pago ${nuevo?'registrado ✅':'removido'}`, nuevo?'success':'error');
       return;
     }
+    if(a==='ver-multiverso'){ abrirMultiverso(); return; }
+    if(a==='cerrar-multiverso'){ document.getElementById('modal-multiverso')?.remove(); return; }
     if(a==='ver-diario'){ abrirDiario(); return; }
     if(a==='cerrar-diario'){ document.getElementById('modal-diario')?.remove(); return; }
     if(a==='compartir-diario'){ compartirDiario(); return; }
@@ -949,6 +951,18 @@ function calcMovimientosYTitulos(todos){
     }
     const fan = [...stats].sort((a,b)=>b.sinApostar-a.sinApostar)[0];
     if(fan && fan.sinApostar>=3) dar(fan.id,'👻 El Fantasma');
+    const jugadosOrden = FX.filter(p=>S.resultados[p[0]]?.real).sort((a,b)=>parseFechaPartido(a[1],a[2])-parseFechaPartido(b[1],b[2]));
+    todos.forEach(j=>{
+      const pron=j.pronosticos||{};
+      let racha=0;
+      for(let k=jugadosOrden.length-1;k>=0;k--){
+        const ap=normPron(pron[jugadosOrden[k][0]]);
+        if(!ap.op) continue;
+        if(ap.op===S.resultados[jugadosOrden[k][0]].real) break;
+        racha++;
+      }
+      if(racha>=4) dar(j.id,`🪦 Maldito x${racha}`);
+    });
   }catch(e){ console.error('movimientos/titulos', e); }
 }
 
@@ -971,7 +985,19 @@ function calcDiario(todos){
     if(acertaron.length && (!bat || cuotaG>bat.cuota)) bat={cuota:cuotaG, nombres:acertaron, p};
     if(!sorp || acertaron.length<sorp.aciertos) sorp={p, aciertos:acertaron.length};
   });
-  return {fecha, ganador:deltas[0], perdedor:deltas[deltas.length-1], bat, sorp, top3:S.ranking.slice(0,3), totalJug:todos.length};
+  let maldito=null;
+  todos.forEach(j=>{
+    const pron=j.pronosticos||{};
+    let racha=0;
+    for(let k=orden.length-1;k>=0;k--){
+      const ap=normPron(pron[orden[k][0]]);
+      if(!ap.op) continue;
+      if(ap.op===S.resultados[orden[k][0]].real) break;
+      racha++;
+    }
+    if(racha>=4 && (!maldito || racha>maldito.racha)) maldito={nombre:j.nombre, racha};
+  });
+  return {fecha, ganador:deltas[0], perdedor:deltas[deltas.length-1], bat, sorp, maldito, top3:S.ranking.slice(0,3), totalJug:todos.length};
 }
 
 function textoDiario(d){
@@ -981,6 +1007,7 @@ function textoDiario(d){
   t+=`📉 Día negro: ${d.perdedor.nombre} (${d.perdedor.delta>=0?'+':''}${d.perdedor.delta})\n`;
   if(d.bat) t+=`🎯 Batacazo: cuota ${d.bat.cuota.toFixed(2)} en ${np(d.bat.p)} (${d.bat.nombres.join(', ')})\n`;
   if(d.sorp) t+=`😱 Sorpresa: ${np(d.sorp.p)} · acertaron ${d.sorp.aciertos}/${d.totalJug}\n`;
+  if(d.maldito) t+=`🪦 Maldición: ${d.maldito.nombre} lleva ${d.maldito.racha} erradas al hilo\n`;
   t+=`🔝 Top 3: `+d.top3.map((r,i)=>`${i+1}° ${r.nombre} (${r.fichas})`).join(' · ');
   t+=`\n\n⚽ ${location.origin}${location.pathname}`;
   return t;
@@ -1001,6 +1028,7 @@ async function abrirDiario(){
       fila('📉','EL DÍA NEGRO', `${esc(d.perdedor.nombre)} (${d.perdedor.delta>=0?'+':''}${d.perdedor.delta} fichas)`) +
       (d.bat? fila('🎯','EL BATACAZO', `Cuota ${d.bat.cuota.toFixed(2)} en ${np(d.bat.p)} · ${d.bat.nombres.map(esc).join(', ')}`):'') +
       (d.sorp? fila('😱','LA SORPRESA', `${np(d.sorp.p)} · lo acertaron ${d.sorp.aciertos} de ${d.totalJug}`):'') +
+      (d.maldito? fila('🪦','LA MALDICIÓN', `${esc(d.maldito.nombre)} lleva ${d.maldito.racha} erradas al hilo · seguilo bajo tu propio riesgo`):'') +
       fila('🔝','TOP 3', d.top3.map((r,i)=>`${i+1}° ${esc(r.nombre)} (${r.fichas})`).join(' · ')) +
       `<button data-action="compartir-diario" style="margin-top:14px;width:100%;background:var(--dorado,#f5b800);color:#000;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:15px;cursor:pointer">📲 Compartir al grupo</button>`;
   }
@@ -1017,6 +1045,72 @@ async function compartirDiario(){
   const text=textoDiario(d);
   if(navigator.share){ try{ await navigator.share({text}); }catch(e){} }
   else { try{ await navigator.clipboard.writeText(text); toast('Resumen copiado 📋','success'); }catch(e){ toast('No se pudo copiar','error'); } }
+}
+
+function calcUniverso(modo, refJugador){
+  let f=FICHAS_INI;
+  FX.forEach(p=>{
+    const r=S.resultados[p[0]]; if(!r?.real) return;
+    const [cL,cE,cV]=getCuotas(p[0],p[7],p[8],p[9]);
+    f-=1;
+    let op=null, gL=null, gV=null;
+    if(modo==='favorito'){ op = (cL<=cE&&cL<=cV)?'1':((cV<=cE)?'2':'X'); }
+    else if(modo==='contrarian'){ op = (cL>=cE&&cL>=cV)?'1':((cV>=cE)?'2':'X'); }
+    else if(modo==='empate'){ op='X'; }
+    else if(modo==='copia'&&refJugador){ const ap=normPron((refJugador.pronosticos||{})[p[0]]); op=ap.op; gL=ap.gL; gV=ap.gV; }
+    if(!op) return;
+    if(op===r.real){
+      const cuota={'1':cL,'X':cE,'2':cV}[op]||1;
+      f += (gL!==null&&gV!==null&&gL===r.gL&&gV===r.gV)? cuota*2 : cuota;
+    }
+  });
+  return Math.round(f*100)/100;
+}
+
+async function abrirMultiverso(){
+  if(!S.jugador){ toast('Iniciá sesión primero','error'); return; }
+  const hayJugados = FX.some(p=>S.resultados[p[0]]?.real);
+  const todos = await fbGetJugadores();
+  const yo = todos.find(j=>j.id===S.jugador.id);
+  const otros = todos.filter(j=>j.id!==S.jugador.id);
+  const miReal = yo ? calcFichas(yo).fichas : FICHAS_INI;
+  const filasUniversos = (copiaId)=>{
+    const ref = otros.find(j=>j.id===copiaId) || otros[0];
+    const lista = [
+      {n:'🌎 Tu realidad', f:miReal, real:true},
+      {n:'⭐ Siempre al favorito', f:calcUniverso('favorito')},
+      {n:'🎲 Siempre a la cuota alta', f:calcUniverso('contrarian')},
+      {n:'🤝 Siempre empate', f:calcUniverso('empate')}
+    ];
+    if(ref) lista.push({n:`👥 Copiando a ${esc(ref.nombre)}`, f:calcUniverso('copia', ref)});
+    const max = Math.max(...lista.map(u=>u.f), 1);
+    return lista.map(u=>{
+      const d = Math.round((u.f-miReal)*100)/100;
+      const col = u.real ? 'var(--celeste,#74acdf)' : (d>0 ? '#2ecc71' : (d<0 ? '#e74c3c' : '#9fb3cc'));
+      const deltaTxt = u.real ? '' : ` <span style="font-size:12px;color:${col};font-weight:700">${d>=0?'+':''}${d}</span>`;
+      return `<div style="margin:12px 0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:#dfe9f5"><span>${u.n}</span><span style="font-weight:700;font-family:var(--condensed)">${u.f}${deltaTxt}</span></div>
+        <div style="height:10px;background:rgba(255,255,255,0.07);border-radius:6px;margin-top:5px;overflow:hidden"><div style="height:10px;width:${Math.max(4,Math.round(u.f/max*100))}%;background:${col};border-radius:6px;transition:width 0.4s"></div></div>
+      </div>`;
+    }).join('');
+  };
+  let cuerpo;
+  if(!hayJugados){
+    cuerpo='<div style="text-align:center;padding:40px 10px;color:#9fb3cc">El multiverso se abre con los primeros resultados ⚽</div>';
+  } else {
+    const opts = otros.map(j=>`<option value="${j.id}">${esc(j.nombre)}</option>`).join('');
+    cuerpo = `<div style="font-size:13px;color:#9fb3cc;margin-bottom:8px">Tus fichas reales contra las líneas temporales donde jugaste distinto:</div>
+      <div id="multiverso-body">${filasUniversos(otros[0]?.id)}</div>
+      ${otros.length? `<div style="margin-top:12px;display:flex;align-items:center;gap:8px"><span style="font-size:13px;color:#9fb3cc">Copiando a:</span><select id="multiverso-sel" style="flex:1;background:var(--bg2,#10182a);color:#dfe9f5;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px">${opts}</select></div>`:''}`;
+  }
+  const ov=document.createElement('div');
+  ov.id='modal-multiverso';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
+  ov.innerHTML=`<div style="max-width:560px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px"><h3 style="margin:0 0 10px;color:var(--dorado,#f5b800);font-family:var(--condensed)">🌀 EL MULTIVERSO</h3>${cuerpo}<button class="btn-grande btn-secundario" data-action="cerrar-multiverso" style="margin-top:14px;width:100%">Cerrar</button></div>`;
+  ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+  const sel=ov.querySelector('#multiverso-sel');
+  if(sel) sel.addEventListener('change',()=>{ const b=ov.querySelector('#multiverso-body'); if(b) b.innerHTML=filasUniversos(sel.value); });
 }
 
 async function abrirEvolucion(){
@@ -1405,7 +1499,7 @@ function renderRanking(){
     const yo=S.jugador&&r.id===S.jugador.id?' yo':'';
     const dlt=S.movimientos?.[r.id]||0;
     const mov=dlt>0?`<span style="color:#2ecc71;font-size:12px;font-weight:700"> ▲${dlt}</span>`:(dlt<0?`<span style="color:#e74c3c;font-size:12px;font-weight:700"> ▼${-dlt}</span>`:'');
-    const badges=(S.titulos?.[r.id]||[]).map(t=>`<span style="display:inline-block;background:rgba(245,184,0,0.15);color:var(--dorado,#f5b800);font-size:10px;padding:2px 7px;border-radius:8px;margin:2px 6px 0 0;font-weight:700">${t}</span>`).join('');
+    const badges=(S.titulos?.[r.id]||[]).map(t=>{const m=t.startsWith('🪦');return `<span style="display:inline-block;background:${m?'rgba(231,76,60,0.18)':'rgba(245,184,0,0.15)'};color:${m?'#e74c3c':'var(--dorado,#f5b800)'};font-size:10px;padding:2px 7px;border-radius:8px;margin:2px 6px 0 0;font-weight:700">${t}</span>`;}).join('');
     const adminAttr = S.isAdmin ? `data-action="toggle-pago-admin" data-id="${r.id}" style="cursor:pointer;text-decoration:underline dotted"` : '';
     const tag = r.pago
       ? `<span class="pago-tag" ${adminAttr}>PAGÓ${S.isAdmin?' ✎':''}</span>`
