@@ -1237,7 +1237,8 @@ function renderInicio(){
   const cardHoy = document.getElementById('card-hoy');
   if(cardHoy){
     try{
-      const hoyStr = new Date().toLocaleDateString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit'});
+      const ahoraAR = new Date(Date.now() - 3*60*60*1000);
+      const hoyStr = String(ahoraAR.getUTCDate()).padStart(2,'0') + '/' + String(ahoraAR.getUTCMonth()+1).padStart(2,'0');
       const deHoy = FX.filter(p=>p[1]===hoyStr && !p[3].startsWith('?'));
       const faltan = deHoy.filter(p=>!esCerrado(p) && !normPron(S.misPron[p[0]]).op).length;
       cardHoy.innerHTML = deHoy.length ? `<div class="card" data-action="ir-hoy" style="cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div><div style="font-family:var(--condensed);font-weight:700;font-size:15px;letter-spacing:0.5px;color:var(--dorado,#f5b800)">📅 PARTIDOS DE HOY · ${deHoy.length}</div><div style="font-size:13px;color:${faltan?'#e74c3c':'#9fb3cc'};margin-top:2px">${faltan? `Te faltan ${faltan} pronósticos ⚠️` : '✅ Ya pronosticaste todos'}</div></div><div style="font-size:22px;color:var(--celeste,#74acdf)">›</div></div>` : '';
@@ -1266,7 +1267,8 @@ function renderPartidos(){
   if(!cont) return;
 
   let lista = S.faseFiltro==='todos' ? FX : FX.filter(p=>p[5]===S.faseFiltro);
-  const hoyStr = new Date().toLocaleDateString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit'});
+  const ahoraAR = new Date(Date.now() - 3*60*60*1000);
+  const hoyStr = String(ahoraAR.getUTCDate()).padStart(2,'0') + '/' + String(ahoraAR.getUTCMonth()+1).padStart(2,'0');
   const esPendiente = p => !p[3].startsWith('?') && !esCerrado(p) && !normPron(S.misPron[p[0]]).op;
   const esHoy = p => p[1]===hoyStr;
   const setChip=(btn,activo,label)=>{ if(!btn) return; btn.textContent=label; btn.style.background=activo?'var(--celeste,#74acdf)':'transparent'; btn.style.color=activo?'var(--azul-d,#0a1226)':'var(--celeste,#74acdf)'; };
