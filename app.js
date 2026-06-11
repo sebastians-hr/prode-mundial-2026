@@ -1445,7 +1445,7 @@ function htmlPartidoAjeno(p, jugador){
   }
 
   const clase = cerrado
-    ? (pron.op===real?.real ? 'acertado' : (pron.op ? 'fallado' : 'cerrado'))
+    ? (real?.real ? (pron.op===real.real ? 'acertado' : (pron.op ? 'fallado' : 'cerrado')) : 'cerrado')
     : (pron.op ? 'guardado' : '');
 
   const btnCls=(op)=>{
@@ -1456,8 +1456,10 @@ function htmlPartidoAjeno(p, jugador){
   };
 
   let pago='';
-  if(cerrado && pron.op){
-    if(pron.op===real?.real){
+  if(cerrado && !real?.real){
+    pago=`<div class="partido-resultado-pago" style="background:rgba(116,172,223,0.12);color:var(--celeste,#74acdf)">🔴 EN JUEGO · el resultado se carga al terminar</div>`;
+  } else if(cerrado && pron.op){
+    if(pron.op===real.real){
       const cuota={'1':cL,'X':cE,'2':cV}[pron.op];
       if(pron.gL!==null && pron.gV!==null && pron.gL===real.gL && pron.gV===real.gV){
         pago=`<div class="partido-resultado-pago gano">⭐ EXACTO · +${(cuota*2).toFixed(2)} fichas (×2)</div>`;
