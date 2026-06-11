@@ -1322,7 +1322,7 @@ function htmlPartido(p){
   const real = S.resultados[id];
 
   const clase = cerrado
-    ? (mia.op===real?.real ? 'acertado' : (mia.op ? 'fallado' : 'cerrado'))
+    ? (real?.real ? (mia.op===real.real ? 'acertado' : (mia.op ? 'fallado' : 'cerrado')) : 'cerrado')
     : (mia.op ? 'guardado' : '');
 
   const gt = fase==='grupos' ? `Grupo ${grupo}`
@@ -1332,8 +1332,10 @@ function htmlPartido(p){
   const rtag = real ? `<span class="resultado-real">${real.gL}-${real.gV}</span>` : '';
 
   let pago='';
-  if(cerrado && mia.op){
-    if(mia.op===real?.real){
+  if(cerrado && !real?.real){
+    pago=`<div class="partido-resultado-pago" style="background:rgba(116,172,223,0.12);color:var(--celeste,#74acdf)">🔴 EN JUEGO · el resultado se carga al terminar</div>`;
+  } else if(cerrado && mia.op){
+    if(mia.op===real.real){
       const cuota = {'1':cL,'X':cE,'2':cV}[mia.op];
       if(mia.gL!==null && mia.gV!==null && mia.gL===real.gL && mia.gV===real.gV){
         pago=`<div class="partido-resultado-pago gano">⭐ EXACTO · +${(cuota*2).toFixed(2)} fichas (×2)</div>`;
@@ -1352,7 +1354,7 @@ function htmlPartido(p){
   const btnCls=(op)=>{
     let c='btn-apuesta'+(op==='X'?' empate':'');
     if(mia.op===op) c+=' elegida';
-    if(cerrado&&mia.op===op) c+= real?.real===op ? ' acertado' : ' fallado';
+    if(cerrado&&mia.op===op&&real?.real) c+= real.real===op ? ' acertado' : ' fallado';
     return c;
   };
 
