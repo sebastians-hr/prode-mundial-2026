@@ -902,9 +902,9 @@ function calcFichas(j){
         sinApostar++;
       } else if(ap.op === r.real){
         const cuota = {'1':cL,'X':cE,'2':cV}[ap.op]||1;
-        // Resultado exacto: cobra ×2
+        // Resultado exacto: ganancia ×2
         if(ap.gL !== null && ap.gV !== null && ap.gL === r.gL && ap.gV === r.gV){
-          fichas += cuota * 2;
+          fichas += cuota * 2 - 1;
           exactos++;
         } else {
           fichas += cuota;
@@ -941,7 +941,7 @@ function calcularEvolucion(jugadores){
         f-=1;
         if(ap.op && ap.op===r.real){
           const cuota={'1':cL,'X':cE,'2':cV}[ap.op]||1;
-          f += (ap.gL!==null&&ap.gV!==null&&ap.gL===r.gL&&ap.gV===r.gV)? cuota*2 : cuota;
+          f += (ap.gL!==null&&ap.gV!==null&&ap.gL===r.gL&&ap.gV===r.gV)? cuota*2-1 : cuota;
         }
       });
       pts.push(Math.round(f*100)/100);
@@ -1122,7 +1122,7 @@ function calcUniverso(modo, refJugador){
     if(!op) return;
     if(op===r.real){
       const cuota={'1':cL,'X':cE,'2':cV}[op]||1;
-      f += (gL!==null&&gV!==null&&gL===r.gL&&gV===r.gV)? cuota*2 : cuota;
+      f += (gL!==null&&gV!==null&&gL===r.gL&&gV===r.gV)? cuota*2-1 : cuota;
     }
   });
   return Math.round(f*100)/100;
@@ -1375,7 +1375,7 @@ function htmlPartido(p){
     if(mia.op===real.real){
       const cuota = {'1':cL,'X':cE,'2':cV}[mia.op];
       if(mia.gL!==null && mia.gV!==null && mia.gL===real.gL && mia.gV===real.gV){
-        pago=`<div class="partido-resultado-pago gano">⭐ EXACTO · +${(cuota*2).toFixed(2)} fichas (×2)</div>`;
+        pago=`<div class="partido-resultado-pago gano">⭐ EXACTO · +${(cuota*2-1).toFixed(2)} fichas (ganancia ×2)</div>`;
       } else {
         pago=`<div class="partido-resultado-pago gano">✓ Acertaste · +${cuota} fichas</div>`;
       }
@@ -1398,7 +1398,7 @@ function htmlPartido(p){
   // Score inputs (solo si no cerrado y no placeholder)
   const scoreHtml = (!cerrado && !ph) ? `
     <div class="score-exacto">
-      <span class="score-lbl">Resultado exacto (opcional · cobra ×2):</span>
+      <span class="score-lbl">Resultado exacto (opcional · ganancia ×2):</span>
       <div class="score-row">
         <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="?" class="score-in"
                data-score-id="${id}" data-campo="gL"
@@ -1511,7 +1511,7 @@ function htmlPartidoAjeno(p, jugador){
     if(pron.op===real.real){
       const cuota={'1':cL,'X':cE,'2':cV}[pron.op];
       if(pron.gL!==null && pron.gV!==null && pron.gL===real.gL && pron.gV===real.gV){
-        pago=`<div class="partido-resultado-pago gano">⭐ EXACTO · +${(cuota*2).toFixed(2)} fichas (×2)</div>`;
+        pago=`<div class="partido-resultado-pago gano">⭐ EXACTO · +${(cuota*2-1).toFixed(2)} fichas (ganancia ×2)</div>`;
       } else {
         pago=`<div class="partido-resultado-pago gano">✓ Acertó · +${cuota} fichas</div>`;
       }
