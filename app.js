@@ -966,6 +966,25 @@ function calcMovimientosYTitulos(todos){
   }catch(e){ console.error('movimientos/titulos', e); }
 }
 
+function calcDistribucion(todos){
+  S.distribucion = {};
+  try{
+    const fasesAbiertas=['grupos','r32','r16'];
+    FX.forEach(p=>{
+      const id=p[0];
+      const visible = (fasesAbiertas.includes(p[5]) && !FECHA3_IDS.has(id)) || !!S.resultados[id]?.real;
+      if(!visible) return;
+      let c1=0,cX=0,c2=0;
+      todos.forEach(j=>{
+        const ap=normPron((j.pronosticos||{})[id]);
+        if(ap.op==='1')c1++; else if(ap.op==='X')cX++; else if(ap.op==='2')c2++;
+      });
+      const total=c1+cX+c2;
+      if(total>0) S.distribucion[id]={'1':c1,'X':cX,'2':c2,total};
+    });
+  }catch(e){ console.error('distribucion', e); }
+}
+
 function calcDiario(todos){
   const conRes = FX.filter(p=>S.resultados[p[0]]?.real);
   if(!conRes.length) return null;
@@ -1163,6 +1182,7 @@ async function recalcRanking(){
   S.ranking = todos.map(j=>({id:j.id,nombre:j.nombre,pago:j.pago,...calcFichas(j)}))
     .sort((a,b)=>b.fichas-a.fichas||b.aciertos-a.aciertos);
   calcMovimientosYTitulos(todos);
+  calcDistribucion(todos);
   renderRanking();
   renderUserBars();
   actualizarPozo();
@@ -1346,6 +1366,23 @@ function htmlPartido(p){
     </div>
     ${scoreHtml}
     ${pago}
+    ${(()=>{
+      const d=S.distribucion?.[id];
+      if(!d||!d.total) return '';
+      const pct=k=>Math.round(d[k]/d.total*100);
+      const filaD=(lbl,k)=>{
+        const g = real?.real===k;
+        return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px">
+          <span style="width:72px;color:#9fb3cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lbl}</span>
+          <div style="flex:1;height:8px;background:rgba(255,255,255,0.07);border-radius:5px;overflow:hidden"><div style="height:8px;width:${pct(k)}%;background:${g?'#2ecc71':'var(--celeste,#74acdf)'};border-radius:5px"></div></div>
+          <span style="min-width:58px;text-align:right;color:${g?'#2ecc71':'#dfe9f5'};font-weight:700">${pct(k)}% (${d[k]})</span>
+        </div>`;
+      };
+      return `<div style="margin-top:8px;background:rgba(255,255,255,0.03);border-radius:10px;padding:8px 10px">
+        <div style="font-size:11px;letter-spacing:0.5px;color:var(--dorado,#f5b800);font-weight:700;margin-bottom:4px">📊 QUÉ DIJO EL FORO</div>
+        ${filaD(L.n,'1')}${filaD('Empate','X')}${filaD(V.n,'2')}
+      </div>`;
+    })()}
   </div>`;
 }
 
