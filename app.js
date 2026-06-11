@@ -351,6 +351,7 @@ document.addEventListener('click', async e=>{
     if(a==='eliminar-participante')   { eliminarParticipante(); return; }
     if(a==='actualizar-cuotas')       { actualizarCuotas(); return; }
     if(a==='resetear-pin')            { resetearPin(); return; }
+    if(a==='cargar-resultado'){ cargarResultadoManual(); return; }
     if(a==='descargar-backup')        { descargarBackup(); return; }
     if(a==='invertidos-walter'){ aplicarInvertidosWalter(); return; }
     if(a==='ver-pronosticos')         { verPronosticosJugador(ac.dataset.id); return; }
@@ -749,6 +750,34 @@ async function resetearPin(){
   jActual.pin = '';
   await fbSetJugador(jActual);
   toast(`PIN de ${j.nombre} reseteado · va a elegir uno nuevo al entrar`,'success');
+}
+
+async function cargarResultadoManual(){
+  if(!S.isAdmin){ toast('Solo admin','error'); return; }
+  const candidatos = FX.filter(p=>esCerrado(p) && !p[3].startsWith('?'));
+  if(!candidatos.length){ toast('No hay partidos cerrados','error'); return; }
+  const lista = candidatos.map((p,i)=>{
+    const r=S.resultados[p[0]];
+    const eq=`${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
+    return `${i+1}. ${eq} (${p[1]})${r?` [cargado ${r.gL}-${r.gV}]`:''}`;
+  }).join('\n');
+  const sel = prompt(`Cargar/corregir resultado manual.\nElegí el número:\n${lista}`);
+  const n = parseInt(sel);
+  if(!n||n<1||n>candidatos.length){ if(sel!==null) toast('Número inválido','error'); return; }
+  const p = candidatos[n-1];
+  const eq=`${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
+  const marc = prompt(`Resultado FINAL de ${eq}\nFormato: golesLocal-golesVisitante (ej: 2-1)`);
+  if(marc===null) return;
+  const m = marc.trim().match(/^(\d{1,2})\s*-\s*(\d{1,2})$/);
+  if(!m){ toast('Formato inválido. Usá ej: 2-1','error'); return; }
+  const gL=parseInt(m[1]), gV=parseInt(m[2]);
+  const real = gL>gV?'1':(gL<gV?'2':'X');
+  if(!confirm(`Confirmar: ${eq} terminó ${gL}-${gV}?\nEsto liquida las fichas de todos.`)) return;
+  S.resultados[p[0]] = {real, gL, gV};
+  await fbSetResultados(S.resultados);
+  await recalcRanking();
+  if(typeof renderPartidos==='function') renderPartidos();
+  toast(`✓ ${eq}: ${gL}-${gV} cargado`,'success');
 }
 
 async function aplicarInvertidosWalter(){
