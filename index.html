@@ -314,6 +314,7 @@ a{color:var(--celeste);text-decoration:none}
     <div class="info" id="pozo-aviso" style="margin-top:6px;opacity:1">🏆 Este pozo se juega por la primera ronda (fase de grupos) · A partir de 16avos se crea un pozo nuevo</div>
   </div>
   
+  <div id="card-hoy"></div>
   <div id="pago-area"></div>
   
   <div class="dato-grid">
@@ -367,7 +368,10 @@ a{color:var(--celeste);text-decoration:none}
     <button class="filtro" data-fase="final">Final</button>
   </div>
   
-  <button id="btn-pendientes" data-action="toggle-pendientes" style="width:100%;margin-bottom:10px;background:transparent;border:1px dashed var(--celeste,#74acdf);color:var(--celeste,#74acdf);border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer">⏳ Ver solo pendientes</button>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <button id="btn-pendientes" data-action="toggle-pendientes" style="flex:1;background:transparent;border:1px dashed var(--celeste,#74acdf);color:var(--celeste,#74acdf);border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">⏳ Pendientes</button>
+    <button id="btn-hoy" data-action="toggle-hoy" style="flex:1;background:transparent;border:1px dashed var(--celeste,#74acdf);color:var(--celeste,#74acdf);border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer">📅 Hoy</button>
+  </div>
   <div id="lista-partidos"></div>
   
   <div style="position:sticky;bottom:90px;left:0;right:0;padding:10px 0;background:linear-gradient(180deg,transparent,var(--bg) 30%);margin-top:14px;z-index:50">

@@ -189,6 +189,7 @@ const S = {
   ultimaSinc: null,
   faseFiltro: 'todos',
   soloPendientes: false,
+  soloHoy: false,
   dirty: false,
   totalJugadores: 0
 };
@@ -384,6 +385,8 @@ document.addEventListener('click', async e=>{
       return;
     }
     if(a==='toggle-pendientes'){ S.soloPendientes = !S.soloPendientes; renderPartidos(); return; }
+    if(a==='toggle-hoy'){ S.soloHoy = !S.soloHoy; renderPartidos(); return; }
+    if(a==='ir-hoy'){ S.soloHoy = true; S.soloPendientes = false; irA('mi-prode'); renderPartidos(); return; }
     if(a==='ver-multiverso'){ abrirMultiverso(); return; }
     if(a==='cerrar-multiverso'){ document.getElementById('modal-multiverso')?.remove(); return; }
     if(a==='ver-diario'){ abrirDiario(); return; }
@@ -1231,6 +1234,15 @@ function renderUserBars(){
 function renderInicio(){
   renderUserBars();
   actualizarPozo();
+  const cardHoy = document.getElementById('card-hoy');
+  if(cardHoy){
+    try{
+      const hoyStr = new Date().toLocaleDateString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit'});
+      const deHoy = FX.filter(p=>p[1]===hoyStr && !p[3].startsWith('?'));
+      const faltan = deHoy.filter(p=>!esCerrado(p) && !normPron(S.misPron[p[0]]).op).length;
+      cardHoy.innerHTML = deHoy.length ? `<div class="card" data-action="ir-hoy" style="cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div><div style="font-family:var(--condensed);font-weight:700;font-size:15px;letter-spacing:0.5px;color:var(--dorado,#f5b800)">📅 PARTIDOS DE HOY · ${deHoy.length}</div><div style="font-size:13px;color:${faltan?'#e74c3c':'#9fb3cc'};margin-top:2px">${faltan? `Te faltan ${faltan} pronósticos ⚠️` : '✅ Ya pronosticaste todos'}</div></div><div style="font-size:22px;color:var(--celeste,#74acdf)">›</div></div>` : '';
+    }catch(e){ console.error('card-hoy', e); }
+  }
   const debut = new Date('2026-06-11T16:00:00-03:00');
   const dias  = Math.max(0,Math.ceil((debut-Date.now())/86400000));
   const el    = document.getElementById('dias-restantes');
@@ -1254,19 +1266,18 @@ function renderPartidos(){
   if(!cont) return;
 
   let lista = S.faseFiltro==='todos' ? FX : FX.filter(p=>p[5]===S.faseFiltro);
+  const hoyStr = new Date().toLocaleDateString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit'});
   const esPendiente = p => !p[3].startsWith('?') && !esCerrado(p) && !normPron(S.misPron[p[0]]).op;
-  const totalPend = lista.filter(esPendiente).length;
-  const btnPend = document.getElementById('btn-pendientes');
-  if(btnPend){
-    btnPend.textContent = S.soloPendientes ? `✅ Viendo solo pendientes (${totalPend}) · tocá para ver todos` : `⏳ Ver solo pendientes (${totalPend})`;
-    btnPend.style.background = S.soloPendientes ? 'var(--celeste,#74acdf)' : 'transparent';
-    btnPend.style.color = S.soloPendientes ? 'var(--azul-d,#0a1226)' : 'var(--celeste,#74acdf)';
-  }
+  const esHoy = p => p[1]===hoyStr;
+  const setChip=(btn,activo,label)=>{ if(!btn) return; btn.textContent=label; btn.style.background=activo?'var(--celeste,#74acdf)':'transparent'; btn.style.color=activo?'var(--azul-d,#0a1226)':'var(--celeste,#74acdf)'; };
+  setChip(document.getElementById('btn-pendientes'), S.soloPendientes, `⏳ Pendientes (${lista.filter(esPendiente).length})`);
+  setChip(document.getElementById('btn-hoy'), S.soloHoy, `📅 Hoy (${lista.filter(esHoy).length})`);
   if(S.soloPendientes) lista = lista.filter(esPendiente);
+  if(S.soloHoy) lista = lista.filter(esHoy);
   lista = [...lista].sort((a,b)=> parseFechaPartido(a[1],a[2]).getTime() - parseFechaPartido(b[1],b[2]).getTime());
 
-  if(S.soloPendientes && !lista.length){
-    cont.innerHTML = '<div class="empty"><div class="ico">🎉</div><p>No te falta ningún pronóstico por hacer</p></div>';
+  if(!lista.length && (S.soloPendientes || S.soloHoy)){
+    cont.innerHTML = `<div class="empty"><div class="ico">${S.soloPendientes?'🎉':'📅'}</div><p>${S.soloPendientes?'No te falta ningún pronóstico acá':'No hay partidos hoy'}</p></div>`;
     return;
   }
 
