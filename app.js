@@ -394,6 +394,11 @@ document.addEventListener('click', async e=>{
     if(a==='compartir-diario'){ compartirDiario(); return; }
     if(a==='ver-evolucion'){ abrirEvolucion(); return; }
     if(a==='cerrar-evolucion'){ document.getElementById('modal-evolucion')?.remove(); return; }
+    if(a==='ver-votantes'){
+      const el=document.getElementById('vot-'+ac.dataset.vid+'-'+ac.dataset.op);
+      if(el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+      return;
+    }
   }
 });
 
@@ -977,15 +982,18 @@ function calcDistribucion(todos){
     const fasesAbiertas=['grupos','r32','r16'];
     FX.forEach(p=>{
       const id=p[0];
-      const visible = (fasesAbiertas.includes(p[5]) && !FECHA3_IDS.has(id)) || !!S.resultados[id]?.real;
+      const visible = (fasesAbiertas.includes(p[5]) && (!FECHA3_IDS.has(id) || esCerrado(p))) || !!S.resultados[id]?.real;
       if(!visible) return;
       let c1=0,cX=0,c2=0;
+      const noms={'1':[],'X':[],'2':[]};
       todos.forEach(j=>{
         const ap=normPron((j.pronosticos||{})[id]);
-        if(ap.op==='1')c1++; else if(ap.op==='X')cX++; else if(ap.op==='2')c2++;
+        if(ap.op==='1'){c1++;noms['1'].push(j.nombre);}
+        else if(ap.op==='X'){cX++;noms['X'].push(j.nombre);}
+        else if(ap.op==='2'){c2++;noms['2'].push(j.nombre);}
       });
       const total=c1+cX+c2;
-      if(total>0) S.distribucion[id]={'1':c1,'X':cX,'2':c2,total};
+      if(total>0) S.distribucion[id]={'1':c1,'X':cX,'2':c2,total,noms};
     });
   }catch(e){ console.error('distribucion', e); }
 }
@@ -1403,14 +1411,18 @@ function htmlPartido(p){
       const pct=k=>Math.round(d[k]/d.total*100);
       const filaD=(lbl,k)=>{
         const g = real?.real===k;
-        return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px">
-          <span style="width:72px;color:#9fb3cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lbl}</span>
-          <div style="flex:1;height:8px;background:rgba(255,255,255,0.07);border-radius:5px;overflow:hidden"><div style="height:8px;width:${pct(k)}%;background:${g?'#2ecc71':'var(--celeste,#74acdf)'};border-radius:5px"></div></div>
-          <span style="min-width:58px;text-align:right;color:${g?'#2ecc71':'#dfe9f5'};font-weight:700">${pct(k)}% (${d[k]})</span>
+        const noms=(d.noms&&d.noms[k]&&d.noms[k].length)? d.noms[k].map(esc).join(' · ') : 'Nadie';
+        return `<div data-action="ver-votantes" data-vid="${id}" data-op="${k}" style="cursor:pointer">
+          <div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px">
+            <span style="width:72px;color:#9fb3cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lbl}</span>
+            <div style="flex:1;height:8px;background:rgba(255,255,255,0.07);border-radius:5px;overflow:hidden"><div style="height:8px;width:${pct(k)}%;background:${g?'#2ecc71':'var(--celeste,#74acdf)'};border-radius:5px"></div></div>
+            <span style="min-width:58px;text-align:right;color:${g?'#2ecc71':'#dfe9f5'};font-weight:700">${pct(k)}% (${d[k]})</span>
+          </div>
+          <div id="vot-${id}-${k}" style="display:none;font-size:11px;color:#9fb3cc;padding:0 0 4px 80px;line-height:1.5">${noms}</div>
         </div>`;
       };
       return `<div style="margin-top:8px;background:rgba(255,255,255,0.03);border-radius:10px;padding:8px 10px">
-        <div style="font-size:11px;letter-spacing:0.5px;color:var(--dorado,#f5b800);font-weight:700;margin-bottom:4px">📊 QUÉ DIJO EL FORO</div>
+        <div style="font-size:11px;letter-spacing:0.5px;color:var(--dorado,#f5b800);font-weight:700;margin-bottom:4px">📊 QUÉ DIJO EL FORO · tocá una barra</div>
         ${filaD(L.n,'1')}${filaD('Empate','X')}${filaD(V.n,'2')}
       </div>`;
     })()}
@@ -1427,7 +1439,7 @@ function htmlPartidoAjeno(p, jugador){
   const real = S.resultados[id];
 
   const fasesAbiertas = ['grupos','r32','r16'];
-  const visible = (fasesAbiertas.includes(fase) && !FECHA3_IDS.has(id)) || !!real?.real;
+  const visible = (fasesAbiertas.includes(fase) && (!FECHA3_IDS.has(id) || cerrado)) || !!real?.real;
 
   const gt = fase==='grupos' ? `Grupo ${grupo}`
     : ({r32:'R32',r16:'Octavos',qf:'Cuartos',sf:'Semis'})[fase]
@@ -1440,7 +1452,7 @@ function htmlPartidoAjeno(p, jugador){
         <span><span class="grupo">${gt}</span> · ${fecha} ${hora}hs</span>
         ${rtag}
       </div>
-      <div style="text-align:center;padding:12px;font-family:var(--condensed);font-size:13px;color:var(--muted);font-weight:700;letter-spacing:0.5px">🔒 Se revela cuando termine el partido</div>
+      <div style="text-align:center;padding:12px;font-family:var(--condensed);font-size:13px;color:var(--muted);font-weight:700;letter-spacing:0.5px">🔒 Se revela cuando ${FECHA3_IDS.has(id) ? 'arranque' : 'termine'} el partido</div>
     </div>`;
   }
 
