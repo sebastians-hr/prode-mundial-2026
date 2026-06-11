@@ -188,6 +188,7 @@ const S = {
   ranking: [],
   ultimaSinc: null,
   faseFiltro: 'todos',
+  soloPendientes: false,
   dirty: false,
   totalJugadores: 0
 };
@@ -382,6 +383,7 @@ document.addEventListener('click', async e=>{
       toast(`${j.nombre}: pago ${nuevo?'registrado ✅':'removido'}`, nuevo?'success':'error');
       return;
     }
+    if(a==='toggle-pendientes'){ S.soloPendientes = !S.soloPendientes; renderPartidos(); return; }
     if(a==='ver-multiverso'){ abrirMultiverso(); return; }
     if(a==='cerrar-multiverso'){ document.getElementById('modal-multiverso')?.remove(); return; }
     if(a==='ver-diario'){ abrirDiario(); return; }
@@ -1252,7 +1254,21 @@ function renderPartidos(){
   if(!cont) return;
 
   let lista = S.faseFiltro==='todos' ? FX : FX.filter(p=>p[5]===S.faseFiltro);
+  const esPendiente = p => !p[3].startsWith('?') && !esCerrado(p) && !normPron(S.misPron[p[0]]).op;
+  const totalPend = lista.filter(esPendiente).length;
+  const btnPend = document.getElementById('btn-pendientes');
+  if(btnPend){
+    btnPend.textContent = S.soloPendientes ? `✅ Viendo solo pendientes (${totalPend}) · tocá para ver todos` : `⏳ Ver solo pendientes (${totalPend})`;
+    btnPend.style.background = S.soloPendientes ? 'var(--celeste,#74acdf)' : 'transparent';
+    btnPend.style.color = S.soloPendientes ? 'var(--azul-d,#0a1226)' : 'var(--celeste,#74acdf)';
+  }
+  if(S.soloPendientes) lista = lista.filter(esPendiente);
   lista = [...lista].sort((a,b)=> parseFechaPartido(a[1],a[2]).getTime() - parseFechaPartido(b[1],b[2]).getTime());
+
+  if(S.soloPendientes && !lista.length){
+    cont.innerHTML = '<div class="empty"><div class="ico">🎉</div><p>No te falta ningún pronóstico por hacer</p></div>';
+    return;
+  }
 
   const porFecha={};
   lista.forEach(p=>{ (porFecha[p[1]]||(porFecha[p[1]]=[])).push(p); });
