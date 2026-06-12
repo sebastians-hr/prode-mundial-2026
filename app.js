@@ -1197,44 +1197,64 @@ async function abrirMultiverso(){
 
 async function abrirEvolucion(){
   const jugadores = await fbGetJugadores();
-  const {fechas,series} = calcularEvolucion(jugadores);
-  let cuerpo;
-  if(!fechas.length){
-    cuerpo='<div style="text-align:center;padding:40px 10px;color:#9fb3cc">El gráfico aparece cuando se jueguen los primeros partidos ⚽</div>';
-  } else {
-    const W=700,H=380,padL=46,padR=14,padT=16,padB=34;
-    const todos=series.flatMap(s=>s.pts);
-    let yMin=Math.min(...todos), yMax=Math.max(...todos);
-    if(yMin===yMax){yMin-=5;yMax+=5;}
-    const span=yMax-yMin; yMin-=span*0.08; yMax+=span*0.08;
-    const n=fechas.length+1;
-    const x=i=> padL + (n===1?0:(i*(W-padL-padR)/(n-1)));
-    const y=v=> padT + (yMax-v)*(H-padT-padB)/(yMax-yMin);
-    const colores=['#74acdf','#f5b800','#e74c3c','#2ecc71','#9b59b6','#e67e22','#1abc9c','#fd79a8','#00cec9','#fab1a0','#6c5ce7','#ffeaa7','#55efc4','#ff7675','#a29bfe','#81ecec','#d63031'];
-    let grid='';
-    for(let g=0;g<=4;g++){
-      const v=yMin+(yMax-yMin)*g/4, yy=y(v);
-      grid+=`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="rgba(255,255,255,0.08)"/>`+`<text x="${padL-6}" y="${yy+4}" font-size="11" fill="#9fb3cc" text-anchor="end">${v.toFixed(0)}</text>`;
-    }
-    const cada=Math.max(1,Math.ceil(n/6));
-    let labels=`<text x="${x(0)}" y="${H-10}" font-size="10" fill="#9fb3cc" text-anchor="middle">Inicio</text>`;
-    fechas.forEach((f,i)=>{ if((i+1)%cada===0||i===fechas.length-1) labels+=`<text x="${x(i+1)}" y="${H-10}" font-size="10" fill="#9fb3cc" text-anchor="middle">${f}</text>`; });
-    const ordenadas=[...series].sort((a,b)=>(a.id===S.jugador?.id)-(b.id===S.jugador?.id));
-    let lineas='';
-    ordenadas.forEach(s=>{
-      const idx=series.indexOf(s);
-      const col=colores[idx%colores.length];
-      const esYo=s.id===S.jugador?.id;
-      const ptsStr=s.pts.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
-      lineas+=`<polyline points="${ptsStr}" fill="none" stroke="${col}" stroke-width="${esYo?4:1.8}" stroke-linejoin="round" stroke-linecap="round" opacity="${esYo?1:0.75}"/>`;
-    });
-    const leyenda=series.map((s,i)=>`<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 8px 3px 0;font-size:12px;color:#dfe9f5"><span style="width:12px;height:12px;border-radius:3px;background:${colores[i%colores.length]};display:inline-block"></span>${esc(s.nombre)}${s.id===S.jugador?.id?' (vos)':''}</span>`).join('');
-    cuerpo=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" xmlns="http://www.w3.org/2000/svg">${grid}${labels}${lineas}</svg><div style="margin-top:10px;display:flex;flex-wrap:wrap">${leyenda}</div>`;
-  }
+  const {fechas, series} = calcularEvolucion(jugadores);
   const ov=document.createElement('div');
   ov.id='modal-evolucion';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
-  ov.innerHTML=`<div style="max-width:760px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px"><h3 style="margin:0 0 12px;color:var(--dorado,#f5b800);font-family:var(--condensed)">📈 EVOLUCIÓN DE FICHAS</h3>${cuerpo}<button class="btn-grande btn-secundario" data-action="cerrar-evolucion" style="margin-top:14px;width:100%">Cerrar</button></div>`;
+  if(!fechas.length){
+    ov.innerHTML=`<div style="max-width:760px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px"><h3 style="margin:0 0 12px;color:var(--dorado,#f5b800);font-family:var(--condensed)">📈 EVOLUCIÓN DE FICHAS</h3><div style="text-align:center;padding:40px 10px;color:#9fb3cc">El gráfico aparece cuando se jueguen los primeros partidos ⚽</div><button class="btn-grande btn-secundario" data-action="cerrar-evolucion" style="margin-top:14px;width:100%">Cerrar</button></div>`;
+  } else {
+    const yoId = S.jugador?.id || null;
+    const ord = [...series].sort((a,b)=>b.pts[b.pts.length-1]-a.pts[a.pts.length-1]);
+    const liderId = ord[0].id;
+    let focoId = null;
+    const render = ()=>{
+      const W=700,H=400,padL=46,padR=128,padT=16,padB=34;
+      const todos = series.flatMap(s=>s.pts).concat([FICHAS_INI]);
+      let yMin=Math.min(...todos), yMax=Math.max(...todos);
+      if(yMin===yMax){yMin-=5;yMax+=5;}
+      const span=yMax-yMin; yMin-=span*0.08; yMax+=span*0.08;
+      const n=fechas.length+1;
+      const x=i=> padL + (n===1?0:(i*(W-padL-padR)/(n-1)));
+      const y=v=> padT + (yMax-v)*(H-padT-padB)/(yMax-yMin);
+      let grid='';
+      for(let g=0;g<=4;g++){
+        const v=yMin+(yMax-yMin)*g/4, yy=y(v);
+        grid+=`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`+`<text x="${padL-6}" y="${yy+4}" font-size="11" fill="#9fb3cc" text-anchor="end">${v.toFixed(0)}</text>`;
+      }
+      const yBase=y(FICHAS_INI);
+      grid+=`<line x1="${padL}" y1="${yBase}" x2="${W-padR}" y2="${yBase}" stroke="rgba(255,255,255,0.35)" stroke-dasharray="4 4"/>`+`<text x="${W-padR+4}" y="${yBase+4}" font-size="10" fill="#9fb3cc">Inicio · ${FICHAS_INI}</text>`;
+      const cada=Math.max(1,Math.ceil(n/6));
+      let labels=`<text x="${x(0)}" y="${H-10}" font-size="10" fill="#9fb3cc" text-anchor="middle">Inicio</text>`;
+      fechas.forEach((f,i)=>{ if((i+1)%cada===0||i===fechas.length-1) labels+=`<text x="${x(i+1)}" y="${H-10}" font-size="10" fill="#9fb3cc" text-anchor="middle">${f}</text>`; });
+      const colorDe = s => s.id===yoId ? 'var(--celeste,#74acdf)' : (s.id===focoId ? '#2ecc71' : (s.id===liderId ? 'var(--dorado,#f5b800)' : 'rgba(255,255,255,0.20)'));
+      const anchoDe = s => s.id===yoId ? 4 : (s.id===focoId ? 3.5 : (s.id===liderId ? 2.5 : 1.4));
+      const destacado = s => s.id===yoId || s.id===focoId || s.id===liderId;
+      const pintar = [...series].sort((a,b)=> (destacado(a)?1:0)-(destacado(b)?1:0) || (a.id===yoId?1:0)-(b.id===yoId?1:0));
+      let lineas='';
+      pintar.forEach(s=>{
+        const ptsStr=s.pts.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+        lineas+=`<polyline points="${ptsStr}" fill="none" stroke="${colorDe(s)}" stroke-width="${anchoDe(s)}" stroke-linejoin="round" stroke-linecap="round"/>`;
+      });
+      const ets = series.filter(destacado).map(s=>({s, yv: y(s.pts[s.pts.length-1])})).sort((a,b)=>a.yv-b.yv);
+      for(let i=1;i<ets.length;i++){ if(ets[i].yv - ets[i-1].yv < 15) ets[i].yv = ets[i-1].yv + 15; }
+      let tags='';
+      ets.forEach(e=>{
+        const fin = e.s.pts[e.s.pts.length-1];
+        tags+=`<text x="${W-padR+6}" y="${e.yv+4}" font-size="11" font-weight="700" fill="${colorDe(e.s)}">${esc(e.s.nombre)} · ${fin}</text>`;
+      });
+      const chips = ord.map(s=>{
+        const on = destacado(s);
+        return `<span data-foco="${s.id}" style="display:inline-flex;align-items:center;gap:5px;margin:3px 8px 3px 0;font-size:12px;cursor:pointer;color:${on?'#dfe9f5':'#7d8da3'}"><span style="width:11px;height:11px;border-radius:3px;background:${on?colorDe(s):'rgba(255,255,255,0.20)'};display:inline-block"></span>${esc(s.nombre)}${s.id===yoId?' (vos)':''}${s.id===liderId?' 👑':''}</span>`;
+      }).join('');
+      return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" xmlns="http://www.w3.org/2000/svg">${grid}${labels}${lineas}${tags}</svg><div style="font-size:11px;color:#9fb3cc;margin-top:6px">Tocá un nombre para destacarlo</div><div style="margin-top:6px;display:flex;flex-wrap:wrap">${chips}</div>`;
+    };
+    ov.innerHTML=`<div style="max-width:760px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px"><h3 style="margin:0 0 12px;color:var(--dorado,#f5b800);font-family:var(--condensed)">📈 EVOLUCIÓN DE FICHAS</h3><div id="evo-wrap">${render()}</div><button class="btn-grande btn-secundario" data-action="cerrar-evolucion" style="margin-top:14px;width:100%">Cerrar</button></div>`;
+    ov.addEventListener('click',ev=>{
+      const c=ev.target.closest('[data-foco]');
+      if(c){ focoId = (focoId===c.dataset.foco ? null : c.dataset.foco); const w=ov.querySelector('#evo-wrap'); if(w) w.innerHTML=render(); }
+    });
+  }
   ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
   document.body.appendChild(ov);
 }
