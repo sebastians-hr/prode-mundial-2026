@@ -1296,7 +1296,7 @@ function renderUserBars(){
     <div class="user-avatar">${ini}</div>
     <div class="user-info">
       <div class="user-name">${esc(S.jugador.nombre)}</div>
-      <div class="user-stats">${st.aciertos} aciertos · ${st.exactos} exactos · ${st.pendientes} pendientes</div>
+      <div class="user-stats">${st.aciertos}/${st.aciertos+st.fallados} aciertos · ${st.exactos} exactos · ${st.pendientes} pendientes</div>
     </div>
     <div class="fichas-badge">${st.fichas} <span style="font-size:11px;font-family:var(--condensed)">FICHAS</span></div>
   </div>`;
@@ -1669,7 +1669,7 @@ function renderRanking(){
       <div class="ranking-pos ${pc}">${i+1}</div>
       <div class="ranking-info">
         <div class="ranking-nombre">${esc(r.nombre)}${mov} ${tag}</div>
-        <div class="ranking-stats">${r.aciertos} aciertos · ${r.exactos} exactos · ${r.pendientes} pendientes</div>
+        <div class="ranking-stats">${r.aciertos}/${r.aciertos+r.fallados} aciertos · ${r.exactos} exactos · ${r.pendientes} pendientes</div>
         ${badges?`<div>${badges}</div>`:''}
       </div>
       <div class="ranking-fichas">${r.fichas}</div>
@@ -1693,7 +1693,7 @@ async function verPronosticosJugador(id){
     <button class="btn-grande btn-secundario" data-action="cerrar-pronosticos-ajenos" style="flex:0 0 auto;width:auto;padding:10px 16px;font-size:14px;min-height:44px">← Volver</button>
     <div>
       <div style="font-family:var(--display);font-size:22px;color:var(--celeste);letter-spacing:1px">${esc(jugador.nombre)}</div>
-      <div style="font-size:11px;color:var(--muted);font-family:var(--condensed);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">${st.fichas} fichas · ${st.aciertos} aciertos · ${st.exactos} exactos</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--condensed);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">${st.fichas} fichas · ${st.aciertos}/${st.aciertos+st.fallados} aciertos · ${st.exactos} exactos</div>
     </div>
   </div>`;
   const porFecha={};
