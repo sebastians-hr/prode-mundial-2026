@@ -400,6 +400,7 @@ document.addEventListener('click', async e=>{
       if(el) el.style.display = el.style.display==='none' ? 'block' : 'none';
       return;
     }
+    if(a==='editar-cuotas'){ editarCuotasPartido(ac.dataset.id); return; }
   }
 });
 
@@ -804,30 +805,50 @@ async function aplicarInvertidosWalter(){
 }
 
 // Actualizar cuotas de un partido (admin)
-async function actualizarCuotas(){
-  const lista = FX.filter(p=>!p[3].startsWith('?')).slice(0,72);
-  const r = prompt('ID del partido a actualizar (ej: M9 para ARG vs ALG):\n\nEjemplos:\nM9 = ARG vs ALG\nM1 = MEX vs RSA\nM6 = BRA vs MAR');
-  if(!r) return;
-  const id = r.trim().toUpperCase();
-  const partido = FX.find(p=>p[0]===id);
-  if(!partido){ toast('Partido no encontrado','error'); return; }
-  const L = EQ[partido[3]]?.n||partido[3];
-  const V = EQ[partido[4]]?.n||partido[4];
-  const [dL,dE,dV] = getCuotas(id, partido[7], partido[8], partido[9]);
-  const nuevas = prompt(
-    `Cuotas para ${L} vs ${V}\n\nActuales: ${dL} / ${dE} / ${dV}\n\n` +
-    `Ingresá las nuevas separadas por coma:\n(formato: local,empate,visitante)\n(ej: 1.80,3.50,4.20)`
-  );
-  if(!nuevas) return;
-  const partes = nuevas.split(',').map(x=>parseFloat(x.trim()));
-  if(partes.length!==3||partes.some(isNaN)||partes.some(x=>x<=0)){
-    toast('Formato inválido. Ej: 1.80,3.50,4.20','error'); return;
-  }
-  cuotasOverride[id] = {cL:partes[0], cE:partes[1], cV:partes[2]};
+async function editarCuotasPartido(id){
+  if(!S.isAdmin){ toast('Solo admin','error'); return; }
+  const p = FX.find(x=>x[0]===id);
+  if(!p){ toast('Partido no encontrado','error'); return; }
+  if(esCerrado(p)){ toast('Partido cerrado: las cuotas no se tocan','error'); return; }
+  const [cL,cE,cV] = getCuotas(id, p[7], p[8], p[9]);
+  const eq = `${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
+  const ing = prompt(`Cuotas de ${eq}\nFormato: local-empate-visita`, `${cL}-${cE}-${cV}`);
+  if(ing===null) return;
+  const m = ing.trim().match(/^(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)$/);
+  if(!m){ toast('Formato inválido. Ej: 1.85-3.40-4.50','error'); return; }
+  const nL=parseFloat(m[1].replace(',','.')), nE=parseFloat(m[2].replace(',','.')), nV=parseFloat(m[3].replace(',','.'));
+  if(!(nL>1 && nE>1 && nV>1)){ toast('Las cuotas deben ser mayores a 1','error'); return; }
+  if(!confirm(`${eq}\nNuevas cuotas: ${nL} / ${nE} / ${nV}?`)) return;
+  cuotasOverride[id] = {cL:nL, cE:nE, cV:nV};
   await fbSetCuotas(cuotasOverride);
   await recalcRanking();
-  renderPartidos();
-  toast(`✓ Cuotas de ${L} vs ${V} actualizadas`,'success');
+  if(typeof renderPartidos==='function') renderPartidos();
+  toast(`✓ Cuotas de ${eq} actualizadas`,'success');
+}
+
+async function actualizarCuotas(){
+  if(!S.isAdmin){ toast('Solo admin','error'); return; }
+  const d0 = new Date(Date.now() - 3*60*60*1000);
+  const d1 = new Date(Date.now() - 3*60*60*1000 + 24*60*60*1000);
+  const f = d => String(d.getUTCDate()).padStart(2,'0') + '/' + String(d.getUTCMonth()+1).padStart(2,'0');
+  const hoyStr = f(d0), manStr = f(d1);
+  let candidatos = FX.filter(p=>!p[3].startsWith('?') && !esCerrado(p) && (p[1]===hoyStr || p[1]===manStr));
+  let titulo = 'Partidos de hoy y mañana';
+  if(!candidatos.length){
+    candidatos = FX.filter(p=>!p[3].startsWith('?') && !esCerrado(p))
+      .sort((a,b)=>parseFechaPartido(a[1],a[2])-parseFechaPartido(b[1],b[2]))
+      .slice(0,10);
+    titulo = 'Próximos partidos abiertos';
+  }
+  if(!candidatos.length){ toast('No hay partidos abiertos','error'); return; }
+  const lista = candidatos.map((p,i)=>{
+    const [cL,cE,cV]=getCuotas(p[0],p[7],p[8],p[9]);
+    return `${i+1}. ${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]} (${p[1]} ${p[2]}) [${cL}/${cE}/${cV}]`;
+  }).join('\n');
+  const sel = prompt(`${titulo} — elegí el número:\n${lista}`);
+  const n = parseInt(sel);
+  if(!n||n<1||n>candidatos.length){ if(sel!==null) toast('Número inválido','error'); return; }
+  await editarCuotasPartido(candidatos[n-1][0]);
 }
 
 // ============================================================
@@ -1463,6 +1484,7 @@ function htmlPartido(p){
         ${filaD(L.n,'1')}${filaD('Empate','X')}${filaD(V.n,'2')}
       </div>`;
     })()}
+    ${S.isAdmin && !cerrado && !ph ? `<button data-action="editar-cuotas" data-id="${id}" style="margin-top:8px;width:100%;background:transparent;border:1px dashed #9fb3cc;color:#9fb3cc;border-radius:10px;padding:7px;font-size:12px;font-weight:700;cursor:pointer">✏️ Cuotas: ${cL} · ${cE} · ${cV} — tocá para editar</button>` : ''}
   </div>`;
 }
 
