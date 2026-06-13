@@ -352,6 +352,7 @@ document.addEventListener('click', async e=>{
     if(a==='actualizar-cuotas')       { actualizarCuotas(); return; }
     if(a==='resetear-pin')            { resetearPin(); return; }
     if(a==='cargar-resultado'){ cargarResultadoManual(); return; }
+    if(a==='editar-pron-admin'){ editarPronosticoAdmin(); return; }
     if(a==='descargar-backup')        { descargarBackup(); return; }
     if(a==='invertidos-walter'){ aplicarInvertidosWalter(); return; }
     if(a==='ver-pronosticos')         { verPronosticosJugador(ac.dataset.id); return; }
@@ -751,6 +752,34 @@ async function resetearPin(){
   jActual.pin = '';
   await fbSetJugador(jActual);
   toast(`PIN de ${j.nombre} reseteado · va a elegir uno nuevo al entrar`,'success');
+}
+
+async function editarPronosticoAdmin(){
+  if(!S.isAdmin){ toast('Solo admin','error'); return; }
+  const jgs = await fbGetJugadores();
+  const lista = jgs.map((j,i)=>`${i+1}. ${j.nombre}`).join('\n');
+  const selJ = prompt(`¿A qué jugador le editás un pronóstico?\n${lista}`);
+  const nJ = parseInt(selJ);
+  if(!nJ||nJ<1||nJ>jgs.length){ if(selJ!==null) toast('Número inválido','error'); return; }
+  const jug = jgs[nJ-1];
+  const idP = (prompt(`Jugador: ${jug.nombre}\nID del partido (ej: M4 = USA-Paraguay):`)||'').trim().toUpperCase();
+  const p = FX.find(x=>x[0]===idP);
+  if(!p){ toast('Partido inexistente','error'); return; }
+  const eq=`${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
+  const actual = (jug.pronosticos||{})[idP];
+  const marc = prompt(`${jug.nombre} · ${eq}\nPronóstico actual: ${actual?JSON.stringify(actual):'NINGUNO'}\n\nIngresá el marcador pronosticado: golesLocal-golesVisita (ej: 2-1)`);
+  if(marc===null) return;
+  const m = marc.trim().match(/^(\d{1,2})\s*-\s*(\d{1,2})$/);
+  if(!m){ toast('Formato inválido. Ej: 2-1','error'); return; }
+  const gL=parseInt(m[1]), gV=parseInt(m[2]);
+  const op = gL>gV?'1':(gL<gV?'2':'X');
+  if(!confirm(`Cargar para ${jug.nombre} en ${eq}:\n${gL}-${gV} (resultado ${op})\n\nQueda registrado como edición de admin. ¿Confirmás?`)) return;
+  const pron = jug.pronosticos || {};
+  pron[idP] = {op, gL, gV, adminEdit:true, adminTs:new Date().toISOString()};
+  await fbUpdatePron(jug.id, pron);
+  await recalcRanking();
+  if(typeof renderPartidos==='function') renderPartidos();
+  toast(`✓ ${jug.nombre}: ${eq} ${gL}-${gV} cargado`,'success');
 }
 
 async function cargarResultadoManual(){
