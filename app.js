@@ -402,6 +402,8 @@ document.addEventListener('click', async e=>{
       return;
     }
     if(a==='editar-cuotas'){ editarCuotasPartido(ac.dataset.id); return; }
+    if(a==='ver-todos-pron'){ verTodosPronosticos(ac.dataset.id); return; }
+    if(a==='cerrar-todospron'){ document.getElementById('modal-todospron')?.remove(); return; }
   }
 });
 
@@ -1490,7 +1492,7 @@ function htmlPartido(p){
 
   return `<div class="partido ${clase}">
     <div class="partido-meta">
-      <span><span class="grupo">${gt}</span> · ${fecha} ${hora}hs</span>
+      <span data-action="ver-todos-pron" data-id="${id}" style="cursor:pointer"><span class="grupo">${gt}</span> · ${fecha} ${hora}hs <span style="font-size:11px;color:var(--celeste,#74acdf)">👁️ ver todos</span></span>
       ${rtag}
     </div>
     <div class="apuestas-3">
@@ -1630,6 +1632,47 @@ function htmlPartidoAjeno(p, jugador){
     ${scoreHtml}
     ${pago}
   </div>`;
+}
+
+async function verTodosPronosticos(id){
+  const p = FX.find(x=>x[0]===id);
+  if(!p){ toast('Partido no encontrado','error'); return; }
+  const fasesAbiertas=['grupos','r32','r16'];
+  const cerrado = esCerrado(p);
+  const real = S.resultados[id];
+  const visible = (fasesAbiertas.includes(p[5]) && (!FECHA3_IDS.has(id) || cerrado)) || !!real?.real;
+  const eq = `${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
+  const ov=document.createElement('div');
+  ov.id='modal-todospron';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
+  let cuerpo;
+  if(!visible){
+    cuerpo=`<div style="text-align:center;padding:40px 10px;color:#9fb3cc">🔒 Los pronósticos se revelan cuando ${FECHA3_IDS.has(id)?'arranque':'termine'} el partido</div>`;
+  } else {
+    const jugadores = await fbGetJugadores();
+    const filas = jugadores.map(j=>{
+      const ap=normPron((j.pronosticos||{})[id]);
+      if(!ap.op) return {nombre:j.nombre, vacio:true};
+      const lbl={'1':EQ[p[3]]?.n||p[3],'X':'Empate','2':EQ[p[4]]?.n||p[4]}[ap.op];
+      const exacto = ap.gL!==null&&ap.gV!==null;
+      let estado='';
+      if(real?.real){
+        const ok=ap.op===real.real;
+        const ex=ok&&exacto&&ap.gL===real.gL&&ap.gV===real.gV;
+        estado= ex?'⭐':(ok?'✓':'✗');
+      }
+      return {nombre:j.nombre, lbl, marcador: exacto?`${ap.gL}-${ap.gV}`:'', estado};
+    });
+    filas.sort((a,b)=> (a.vacio?1:0)-(b.vacio?1:0) || a.nombre.localeCompare(b.nombre));
+    const filaHtml = f => f.vacio
+      ? `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:#7d8da3;font-size:13px"><span>${esc(f.nombre)}</span><span style="font-style:italic">sin pronóstico</span></div>`
+      : `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px"><span style="color:#dfe9f5">${f.estado} ${esc(f.nombre)}</span><span style="color:#9fb3cc;text-align:right">${esc(f.lbl)}${f.marcador?` · <b style="color:#dfe9f5">${f.marcador}</b>`:''}</span></div>`;
+    const rtxt = real?.real ? `<div style="font-size:13px;color:var(--dorado,#f5b800);margin-bottom:8px">Resultado: ${real.gL}-${real.gV}</div>` : (cerrado?'<div style="font-size:13px;color:var(--celeste,#74acdf);margin-bottom:8px">🔴 En juego</div>':'');
+    cuerpo = rtxt + filas.map(filaHtml).join('');
+  }
+  ov.innerHTML=`<div style="max-width:620px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px"><h3 style="margin:0 0 4px;color:var(--dorado,#f5b800);font-family:var(--condensed)">PRONÓSTICOS DEL FORO</h3><div style="font-size:14px;color:#dfe9f5;margin-bottom:12px">${esc(eq)}</div>${cuerpo}<button class="btn-grande btn-secundario" data-action="cerrar-todospron" style="margin-top:14px;width:100%">Cerrar</button></div>`;
+  ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
 }
 
 // ============================================================
