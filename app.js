@@ -1654,7 +1654,7 @@ async function verTodosPronosticos(id){
       const ap=normPron((j.pronosticos||{})[id]);
       if(!ap.op) return {nombre:j.nombre, vacio:true};
       const lbl={'1':EQ[p[3]]?.n||p[3],'X':'Empate','2':EQ[p[4]]?.n||p[4]}[ap.op];
-      const exacto = ap.gL!==null&&ap.gV!==null;
+      const exacto = ap.gL!=null&&ap.gV!=null;
       let estado='';
       if(real?.real){
         const ok=ap.op===real.real;
