@@ -386,6 +386,7 @@ document.addEventListener('click', async e=>{
       toast(`${j.nombre}: pago ${nuevo?'registrado ✅':'removido'}`, nuevo?'success':'error');
       return;
     }
+    if(a==='toggle-jugados'){ S.verJugados = !S.verJugados; renderPartidos(); return; }
     if(a==='toggle-pendientes'){ S.soloPendientes = !S.soloPendientes; renderPartidos(); return; }
     if(a==='toggle-hoy'){ S.soloHoy = !S.soloHoy; renderPartidos(); return; }
     if(a==='ir-hoy'){ S.soloHoy = true; S.soloPendientes = false; irA('mi-prode'); renderPartidos(); return; }
@@ -1392,14 +1393,37 @@ function renderPartidos(){
     return;
   }
 
-  const porFecha={};
-  lista.forEach(p=>{ (porFecha[p[1]]||(porFecha[p[1]]=[])).push(p); });
+  const enJuego = lista.filter(p=>esCerrado(p) && !S.resultados[p[0]]?.real && !p[3].startsWith('?'));
+  const jugados = lista.filter(p=>S.resultados[p[0]]?.real);
+  const jugadosIds = new Set(jugados.map(p=>p[0]));
+  const enJuegoIds = new Set(enJuego.map(p=>p[0]));
+  const proximos = lista.filter(p=>!jugadosIds.has(p[0]) && !enJuegoIds.has(p[0]));
 
   let html='';
-  Object.entries(porFecha).forEach(([fecha,ps])=>{
-    html+=`<div class="fecha-divider">${fecha}</div>`;
-    ps.forEach(p=>{ html+=htmlPartido(p); });
-  });
+
+  if(enJuego.length){
+    html+=`<div class="fecha-divider" style="color:var(--celeste,#74acdf)">🔴 EN JUEGO</div>`;
+    enJuego.forEach(p=>{ html+=htmlPartido(p); });
+  }
+
+  if(proximos.length){
+    const porFecha={};
+    proximos.forEach(p=>{ (porFecha[p[1]]||(porFecha[p[1]]=[])).push(p); });
+    Object.entries(porFecha).forEach(([fecha,ps])=>{
+      html+=`<div class="fecha-divider">${fecha}</div>`;
+      ps.forEach(p=>{ html+=htmlPartido(p); });
+    });
+  }
+
+  if(jugados.length){
+    const jugadosOrden=[...jugados].sort((a,b)=> parseFechaPartido(b[1],b[2]).getTime() - parseFechaPartido(a[1],a[2]).getTime());
+    html+=`<button data-action="toggle-jugados" style="width:100%;margin:14px 0 4px;background:transparent;border:1px dashed #9fb3cc;color:#9fb3cc;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">${S.verJugados?'▲ Ocultar partidos jugados':`▼ Ver partidos jugados (${jugados.length})`}</button>`;
+    if(S.verJugados){
+      html+=`<div>`;
+      jugadosOrden.forEach(p=>{ html+=htmlPartido(p); });
+      html+=`</div>`;
+    }
+  }
 
   cont.innerHTML = html || '<div class="empty"><div class="ico">⚽</div><p>Sin partidos en esta fase</p></div>';
 
