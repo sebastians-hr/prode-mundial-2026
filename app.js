@@ -386,6 +386,12 @@ document.addEventListener('click', async e=>{
       toast(`${j.nombre}: pago ${nuevo?'registrado ✅':'removido'}`, nuevo?'success':'error');
       return;
     }
+    if(a==='ir-a-jugados'){
+      S.verJugados = true;
+      renderPartidos();
+      setTimeout(()=>{ document.getElementById('seccion-jugados')?.scrollIntoView({behavior:'smooth',block:'start'}); }, 60);
+      return;
+    }
     if(a==='toggle-jugados'){ S.verJugados = !S.verJugados; renderPartidos(); return; }
     if(a==='toggle-pendientes'){ S.soloPendientes = !S.soloPendientes; renderPartidos(); return; }
     if(a==='toggle-hoy'){ S.soloHoy = !S.soloHoy; renderPartidos(); return; }
@@ -1400,6 +1406,9 @@ function renderPartidos(){
   const proximos = lista.filter(p=>!jugadosIds.has(p[0]) && !enJuegoIds.has(p[0]));
 
   let html='';
+  if(jugados.length && !S.verJugados){
+    html+=`<div data-action="ir-a-jugados" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;margin-bottom:14px;border:1px dashed #9fb3cc;border-radius:10px;font-size:13px;color:#9fb3cc;cursor:pointer">▼ Ver ${jugados.length} partidos jugados</div>`;
+  }
 
   if(enJuego.length){
     html+=`<div class="fecha-divider" style="color:var(--celeste,#74acdf)">🔴 EN JUEGO</div>`;
@@ -1417,6 +1426,7 @@ function renderPartidos(){
 
   if(jugados.length){
     const jugadosOrden=[...jugados].sort((a,b)=> parseFechaPartido(b[1],b[2]).getTime() - parseFechaPartido(a[1],a[2]).getTime());
+    html+=`<div id="seccion-jugados"></div>`;
     html+=`<button data-action="toggle-jugados" style="width:100%;margin:14px 0 4px;background:transparent;border:1px dashed #9fb3cc;color:#9fb3cc;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">${S.verJugados?'▲ Ocultar partidos jugados':`▼ Ver partidos jugados (${jugados.length})`}</button>`;
     if(S.verJugados){
       html+=`<div>`;
