@@ -392,7 +392,7 @@ document.addEventListener('click', async e=>{
       setTimeout(()=>{ document.getElementById('seccion-jugados')?.scrollIntoView({behavior:'smooth',block:'start'}); }, 60);
       return;
     }
-    if(a==='toggle-jugados'){ S.verJugados = !S.verJugados; renderPartidos(); return; }
+    if(a==='toggle-jugados'){ const ocultando = S.verJugados; S.verJugados = !S.verJugados; renderPartidos(); if(ocultando){ setTimeout(()=>{ document.getElementById('lista-partidos')?.scrollIntoView({behavior:'smooth',block:'start'}); }, 60); } return; }
     if(a==='toggle-pendientes'){ S.soloPendientes = !S.soloPendientes; renderPartidos(); return; }
     if(a==='toggle-hoy'){ S.soloHoy = !S.soloHoy; renderPartidos(); return; }
     if(a==='ir-hoy'){ S.soloHoy = true; S.soloPendientes = false; irA('mi-prode'); renderPartidos(); return; }
