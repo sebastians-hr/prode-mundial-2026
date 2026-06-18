@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evolución de fichas — Ivan Kerschen</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a1226;
+      color: #dfe9f5;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #f5b800;
+      margin-bottom: 4px;
+    }
+    .sub {
+      text-align: center;
+      font-size: 13px;
+      color: #9fb3cc;
+      margin-bottom: 24px;
+    }
+    .chart-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #10182a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 24px 20px 16px;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #9fb3cc;
+    }
+    .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .stats {
+      max-width: 900px;
+      margin: 16px auto 0;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      flex: 1;
+      min-width: 140px;
+      background: #10182a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 26px;
+      font-weight: 700;
+      color: #f5b800;
+    }
+    .stat-lbl {
+      font-size: 11px;
+      color: #9fb3cc;
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-val.verde  { color: #2ecc71; }
+    .stat-val.rojo   { color: #e74c3c; }
+    .stat-val.celeste{ color: #74acdf; }
+  </style>
+</head>
+<body>
+  <h1>Evolución de Fichas — Ivan Kerschen</h1>
+  <p class="sub">Prode Mundial 2026 · 23 partidos jugados · Generado el 17/06/2026, 10:39 p. m.</p>
+
+  <div class="chart-wrap">
+    <canvas id="chart" height="340"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="dot" style="background:#74acdf"></div>Inicio (104)</div>
+      <div class="legend-item"><div class="dot" style="background:#f5b800"></div>Exacto ✓✓</div>
+      <div class="legend-item"><div class="dot" style="background:#2ecc71"></div>Acierto ✓</div>
+      <div class="legend-item"><div class="dot" style="background:#e74c3c"></div>Fallo ✗</div>
+      <div class="legend-item"><div class="dot" style="background:#9fb3cc"></div>Sin apostar</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val">104</div>
+      <div class="stat-lbl">Saldo inicial</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val verde">111.00</div>
+      <div class="stat-lbl">Saldo actual</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val verde">+7.00</div>
+      <div class="stat-lbl">Resultado neto</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">11</div>
+      <div class="stat-lbl">Aciertos (4 exactos)</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val rojo">12</div>
+      <div class="stat-lbl">Fallos</div>
+    </div>
+  </div>
+
+  <script>
+    const labels   = ["Inicio","P1","P2","P3","P4","P5","P6","P7","P8","P9","P10","P11","P12","P13","P14","P15","P16","P17","P18","P19","P20","P21","P22","P23"];
+    const data     = [104,103,105.6,110.2,109.2,108.2,107.2,107.85,106.85,107.05,106.05,105.05,106.1,105.1,104.1,110.1,109.1,110.4,111.05,111.4,111.9,110.9,109.9,111];
+    const tooltips = [null,{"num":1,"fecha":"11/06 16:00","partido":"México vs Sudáfrica","apuesta":"X (1-1)","cuota":"x3.40","real":"1 — 2-0 (Local)","delta":"-1.00","saldo":"103.00"},{"num":2,"fecha":"11/06 23:00","partido":"Corea del Sur vs Rep. Checa","apuesta":"1 (2-1)","cuota":"x2.30","real":"1 — 2-1 (Local)","delta":"+2.60","saldo":"105.60"},{"num":3,"fecha":"12/06 16:00","partido":"Canadá vs Bosnia","apuesta":"X (1-1)","cuota":"x3.30","real":"X — 1-1 (Empate)","delta":"+4.60","saldo":"110.20"},{"num":4,"fecha":"12/06 22:00","partido":"EE.UU. vs Paraguay","apuesta":"2 (0-1)","cuota":"x4.00","real":"1 — 4-1 (Local)","delta":"-1.00","saldo":"109.20"},{"num":5,"fecha":"13/06 16:00","partido":"Suiza vs Qatar","apuesta":"1 (2-0)","cuota":"x1.40","real":"X — 1-1 (Empate)","delta":"-1.00","saldo":"108.20"},{"num":6,"fecha":"13/06 19:00","partido":"Brasil vs Marruecos","apuesta":"2 (1-2)","cuota":"x6.00","real":"X — 1-1 (Empate)","delta":"-1.00","saldo":"107.20"},{"num":7,"fecha":"13/06 22:00","partido":"Haití vs Escocia","apuesta":"2 (0-2)","cuota":"x1.65","real":"2 — 0-1 (Visit.)","delta":"+0.65","saldo":"107.85"},{"num":8,"fecha":"14/06 01:00","partido":"Australia vs Turquía","apuesta":"2 (0-1)","cuota":"x2.40","real":"1 — 2-0 (Local)","delta":"-1.00","saldo":"106.85"},{"num":9,"fecha":"14/06 14:00","partido":"Alemania vs Curazao","apuesta":"1 (4-0)","cuota":"x1.20","real":"1 — 7-1 (Local)","delta":"+0.20","saldo":"107.05"},{"num":10,"fecha":"14/06 17:00","partido":"P. Bajos vs Japón","apuesta":"2 (1-2)","cuota":"x5.00","real":"X — 2-2 (Empate)","delta":"-1.00","saldo":"106.05"},{"num":11,"fecha":"14/06 20:00","partido":"Costa de Marfil vs Ecuador","apuesta":"X (2-2)","cuota":"x3.10","real":"1 — 1-0 (Local)","delta":"-1.00","saldo":"105.05"},{"num":12,"fecha":"14/06 23:00","partido":"Suecia vs Túnez","apuesta":"1 (2-0)","cuota":"x2.05","real":"1 — 5-1 (Local)","delta":"+1.05","saldo":"106.10"},{"num":13,"fecha":"15/06 13:00","partido":"España vs Cabo Verde","apuesta":"1 (6-0)","cuota":"x1.20","real":"X — 0-0 (Empate)","delta":"-1.00","saldo":"105.10"},{"num":14,"fecha":"15/06 16:00","partido":"Bélgica vs Egipto","apuesta":"1 (2-1)","cuota":"x1.55","real":"X — 1-1 (Empate)","delta":"-1.00","saldo":"104.10"},{"num":15,"fecha":"15/06 19:00","partido":"Uruguay vs Arabia Saudita","apuesta":"X (1-1)","cuota":"x4.00","real":"X — 1-1 (Empate)","delta":"+6.00","saldo":"110.10"},{"num":16,"fecha":"15/06 22:00","partido":"Nueva Zelanda vs Irán","apuesta":"2 (0-2)","cuota":"x1.75","real":"X — 2-2 (Empate)","delta":"-1.00","saldo":"109.10"},{"num":17,"fecha":"16/06 16:00","partido":"Francia vs Senegal","apuesta":"1 (3-1)","cuota":"x1.65","real":"1 — 3-1 (Local)","delta":"+1.30","saldo":"110.40"},{"num":18,"fecha":"16/06 19:00","partido":"Irak vs Noruega","apuesta":"2 (0-2)","cuota":"x1.65","real":"2 — 1-4 (Visit.)","delta":"+0.65","saldo":"111.05"},{"num":19,"fecha":"16/06 22:00","partido":"Argentina vs Argelia","apuesta":"1 (2-0)","cuota":"x1.35","real":"1 — 3-0 (Local)","delta":"+0.35","saldo":"111.40"},{"num":20,"fecha":"17/06 01:00","partido":"Austria vs Jordania","apuesta":"1 (2-1)","cuota":"x1.50","real":"1 — 3-1 (Local)","delta":"+0.50","saldo":"111.90"},{"num":21,"fecha":"17/06 14:00","partido":"Portugal vs RD Congo","apuesta":"1 (4-0)","cuota":"x1.30","real":"X — 1-1 (Empate)","delta":"-1.00","saldo":"110.90"},{"num":22,"fecha":"17/06 17:00","partido":"Inglaterra vs Croacia","apuesta":"X (1-1)","cuota":"x3.30","real":"1 — 4-2 (Local)","delta":"-1.00","saldo":"109.90"},{"num":23,"fecha":"17/06 20:00","partido":"Ghana vs Panamá","apuesta":"1 (2-0)","cuota":"x2.10","real":"1 — 1-0 (Local)","delta":"+1.10","saldo":"111.00"}];
+    const pointBg  = ["#74acdf","#e74c3c","#f5b800","#f5b800","#e74c3c","#e74c3c","#e74c3c","#2ecc71","#e74c3c","#2ecc71","#e74c3c","#e74c3c","#2ecc71","#e74c3c","#e74c3c","#f5b800","#e74c3c","#f5b800","#2ecc71","#2ecc71","#2ecc71","#e74c3c","#e74c3c","#2ecc71"];
+    const pointR   = [7,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5];
+    const INI      = 104;
+
+    const ctx = document.getElementById('chart').getContext('2d');
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Fichas acumuladas',
+          data,
+          borderColor: '#74acdf',
+          borderWidth: 2.5,
+          tension: 0.25,
+          pointBackgroundColor: pointBg,
+          pointBorderColor: '#0a1226',
+          pointBorderWidth: 2,
+          pointRadius: pointR,
+          pointHoverRadius: 9,
+          fill: {
+            target: { value: INI },
+            above: 'rgba(46,204,113,0.08)',
+            below: 'rgba(231,76,60,0.08)',
+          },
+        }],
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#10182a',
+            borderColor: 'rgba(255,255,255,0.15)',
+            borderWidth: 1,
+            padding: 14,
+            titleColor: '#f5b800',
+            bodyColor: '#dfe9f5',
+            titleFont: { size: 13, weight: 'bold' },
+            bodyFont: { size: 12 },
+            callbacks: {
+              title(items) {
+                const t = tooltips[items[0].dataIndex];
+                if (!t) return 'Inicio';
+                return 'P' + t.num + ' · ' + t.partido;
+              },
+              label(item) { return ''; },
+              afterLabel(item) {
+                const t = tooltips[item.dataIndex];
+                if (!t) return ['  Saldo: ' + INI + ' fichas'];
+                const lines = [
+                  '  📅 ' + t.fecha,
+                  '  Pronóstico: ' + t.apuesta + '   Cuota: ' + t.cuota,
+                  '  Resultado:  ' + t.real,
+                  '  Fichas:     ' + t.delta + '   Saldo: ' + t.saldo,
+                ];
+                return lines;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#9fb3cc', font: { size: 11 } },
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#9fb3cc', font: { size: 11 } },
+            suggestedMin: Math.min(...data) - 3,
+            suggestedMax: Math.max(...data) + 3,
+          },
+        },
+      },
+    });
+
+    // Línea de referencia en 104 (saldo inicial)
+    Chart.register({
+      id: 'baseline',
+      afterDraw(chart) {
+        const { ctx, chartArea: { left, right }, scales: { y } } = chart;
+        const yPos = y.getPixelForValue(INI);
+        ctx.save();
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = 'rgba(245,184,0,0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(left, yPos);
+        ctx.lineTo(right, yPos);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(245,184,0,0.6)';
+        ctx.font = '11px system-ui';
+        ctx.fillText('Inicio ' + INI, right - 58, yPos - 5);
+        ctx.restore();
+      },
+    });
+  </script>
+</body>
+</html>
