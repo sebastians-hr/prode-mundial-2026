@@ -57,6 +57,14 @@ tr.fallo   td:first-child{border-left:3px solid #44546e}
 .flag{font-size:15px}
 .mid{color:var(--muted);font-size:11px}
 .foot{color:var(--muted);font-size:11px;text-align:center;margin-top:30px}
+.selectores{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:22px}
+.selgrupo{display:flex;flex-direction:column;gap:5px;flex:1;min-width:160px}
+.selgrupo label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}
+.selgrupo select{background:var(--card2);color:var(--texto);border:1px solid var(--borde);border-radius:10px;padding:11px 12px;font-size:15px;font-family:inherit;outline:none}
+.selgrupo select:focus{border-color:var(--celeste)}
+.grafico-card{padding:16px;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;margin-bottom:30px}
+.grafico-card h2{color:var(--dorado,#f5b800);font-size:18px;margin:0 0 14px}
+.grafico-hint{font-size:12px;color:#9fb3cc;margin-top:8px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -64,11 +72,6 @@ tr.fallo   td:first-child{border-left:3px solid #44546e}
 <div class="wrap">
   <h1>🔍 Auditoría de Fichas</h1>
   <div class="sub">Liquidación partido por partido · lógica idéntica a la app (calcFichas)</div>
-  <div id="grafico-card" style="max-width:900px;margin:0 auto 30px;padding:16px;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;display:none">
-    <h2 style="color:var(--dorado,#f5b800);font-family:sans-serif;margin:0 0 14px">📈 Evolución comparada de fichas</h2>
-    <canvas id="grafico-fichas" height="160"></canvas>
-    <div style="font-size:12px;color:#9fb3cc;margin-top:8px">Pasá el mouse o tocá cada punto para ver el partido</div>
-  </div>
   <div id="contenido"><div class="loading"><div class="spinner"></div><p style="margin-top:12px">Conectando con Firestore…</p></div></div>
   <div class="foot">Datos en vivo de Firestore · proyecto prode-mundial-26</div>
 </div>
@@ -298,8 +301,6 @@ function calcFichas(j){
 // ============================================================
 // AUDITORÍA: filas partido por partido (misma fórmula que calcFichas)
 // ============================================================
-const JUGADORES_AUDITAR = ['Guido Guelman', 'Tomas Williams'];
-
 const OP_TXT = {'1':'1','X':'X','2':'2'};
 
 function nombreEquipo(code){
@@ -461,11 +462,6 @@ function norm(s){ return (s||'').toString().trim().toLowerCase(); }
 // GRÁFICO comparado (Chart.js)
 // ============================================================
 let chartFichas = null;
-const COLORES = {
-  'guido guelman': '#74acdf',
-  'tomas williams': '#f5b800'
-};
-const COLORES_FALLBACK = ['#74acdf', '#f5b800'];
 
 function buildPunto(fila){
   // info paralela para el tooltip de cada punto liquidado
@@ -488,27 +484,31 @@ function buildPunto(fila){
   };
 }
 
-function renderGrafico(jugadores){
+// Colores fijos por orden de elección: A celeste, B dorado
+const COLOR_A = '#74acdf';
+const COLOR_B = '#f5b800';
+
+function dibujarGrafico(jugadoresElegidos){
   // Series alineadas: todos comparten el mismo conjunto de partidos liquidados
   // (mismo FX con resultado). buildFilas ya filtra y ordena cronológicamente.
-  const series = [];
-  for(const nombre of JUGADORES_AUDITAR){
-    const j = jugadores.find(x=>norm(x.nombre)===norm(nombre));
-    if(!j) continue;
+  const series = jugadoresElegidos.map(j=>{
     const filas = buildFilas(j);
     // Punto 0 = saldo inicial; luego un punto por partido liquidado
     const data = [FICHAS_INI, ...filas.map(f=>f.saldo)];
     const meta = [null, ...filas.map(buildPunto)]; // info paralela; null en el arranque
-    series.push({ nombre: j.nombre, data, meta });
+    return { nombre: j.nombre, data, meta };
+  });
+  if(!series.length){
+    if(chartFichas){ chartFichas.destroy(); chartFichas = null; }
+    return;
   }
-  if(!series.length) return;
 
   // Eje X: arranque + número de partido jugado (1,2,3,…)
   const maxLen = Math.max(...series.map(s=>s.data.length));
   const labels = Array.from({length:maxLen}, (_,i)=> i===0 ? 'Inicio' : 'P'+i);
 
   const datasets = series.map((s,idx)=>{
-    const color = COLORES[norm(s.nombre)] || COLORES_FALLBACK[idx % COLORES_FALLBACK.length];
+    const color = idx===0 ? COLOR_A : COLOR_B;
     return {
       label: s.nombre,
       data: s.data,
@@ -524,7 +524,6 @@ function renderGrafico(jugadores){
     };
   });
 
-  document.getElementById('grafico-card').style.display = '';
   const ctx = document.getElementById('grafico-fichas').getContext('2d');
   if(chartFichas) chartFichas.destroy();
   chartFichas = new Chart(ctx, {
@@ -548,8 +547,7 @@ function renderGrafico(jugadores){
           callbacks: {
             title: (items)=>{
               const it = items[0];
-              const info = it.dataset._meta[it.dataIndex];
-              return info ? info.partido : 'Inicio';
+              return it.dataIndex===0 ? 'Inicio' : ('Partido ' + it.dataIndex);
             },
             label: (it)=>{
               const info = it.dataset._meta[it.dataIndex];
@@ -558,7 +556,8 @@ function renderGrafico(jugadores){
               }
               return [
                 it.dataset.label,
-                `Tu pick: ${info.pick}`,
+                info.partido,
+                `Pick: ${info.pick}`,
                 `Resultado: ${info.real}`,
                 `Fichas: ${info.delta}`,
                 `Saldo: ${info.saldo}`
@@ -582,6 +581,29 @@ function renderGrafico(jugadores){
   });
 }
 
+// Renderiza tablas + gráfico según la selección actual
+function pintar(){
+  const jugs = window.JUGADORES || [];
+  const idA = document.getElementById('selA').value;
+  const idB = document.getElementById('selB').value;
+  const jA = jugs.find(j=>j.id===idA);
+  const jB = idB ? jugs.find(j=>j.id===idB) : null;
+
+  const elegidos = [];
+  if(jA) elegidos.push(jA);
+  if(jB) elegidos.push(jB);
+
+  // Tablas
+  let html = '';
+  if(jA) html += renderJugador(jA);
+  if(jB) html += renderJugador(jB);
+  if(!html) html = `<div class="err">Elegí al menos un jugador.</div>`;
+  document.getElementById('tablas').innerHTML = html;
+
+  // Gráfico
+  dibujarGrafico(elegidos);
+}
+
 async function main(){
   const cont = document.getElementById('contenido');
   try{
@@ -591,17 +613,46 @@ async function main(){
     S.resultados = resultados || {};
     cuotasOverride = cuotas || {};
 
-    let html = '';
-    for(const nombre of JUGADORES_AUDITAR){
-      const j = jugadores.find(x=>norm(x.nombre)===norm(nombre));
-      if(!j){
-        html += `<div class="jcard"><div class="jhead"><h2>${nombre}</h2></div><div class="err">No se encontró este jugador en Firestore.</div></div>`;
-        continue;
-      }
-      html += renderJugador(j);
+    // Orden alfabético por nombre; disponible globalmente para los handlers
+    jugadores.sort((a,b)=>norm(a.nombre).localeCompare(norm(b.nombre)));
+    window.JUGADORES = jugadores;
+
+    if(!jugadores.length){
+      cont.innerHTML = `<div class="err">No hay jugadores en Firestore.</div>`;
+      return;
     }
-    cont.innerHTML = html;
-    renderGrafico(jugadores);
+
+    const opciones = jugadores.map(j=>`<option value="${j.id}">${j.nombre}</option>`).join('');
+
+    cont.innerHTML = `
+      <div class="selectores">
+        <div class="selgrupo">
+          <label for="selA">Auditar a</label>
+          <select id="selA">${opciones}</select>
+        </div>
+        <div class="selgrupo">
+          <label for="selB">Comparar con</label>
+          <select id="selB"><option value="">— nadie —</option>${opciones}</select>
+        </div>
+      </div>
+      <div class="grafico-card">
+        <h2>📈 Evolución de fichas</h2>
+        <canvas id="grafico-fichas" height="160"></canvas>
+        <div class="grafico-hint">Pasá el mouse o tocá cada punto para ver el partido</div>
+      </div>
+      <div id="tablas"></div>
+    `;
+
+    // Defaults: A = primer jugador, B = nadie
+    const selA = document.getElementById('selA');
+    const selB = document.getElementById('selB');
+    selA.value = jugadores[0].id;
+    selB.value = '';
+
+    selA.addEventListener('change', pintar);
+    selB.addEventListener('change', pintar);
+
+    pintar();
   }catch(e){
     cont.innerHTML = `<div class="err">Error al cargar datos de Firestore:<br>${(e && e.message) ? e.message : e}</div>`;
     console.error(e);
