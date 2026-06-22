@@ -58,11 +58,17 @@ tr.fallo   td:first-child{border-left:3px solid #44546e}
 .mid{color:var(--muted);font-size:11px}
 .foot{color:var(--muted);font-size:11px;text-align:center;margin-top:30px}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="wrap">
   <h1>🔍 Auditoría de Fichas</h1>
   <div class="sub">Liquidación partido por partido · lógica idéntica a la app (calcFichas)</div>
+  <div id="grafico-card" style="max-width:900px;margin:0 auto 30px;padding:16px;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;display:none">
+    <h2 style="color:var(--dorado,#f5b800);font-family:sans-serif;margin:0 0 14px">📈 Evolución comparada de fichas</h2>
+    <canvas id="grafico-fichas" height="160"></canvas>
+    <div style="font-size:12px;color:#9fb3cc;margin-top:8px">Pasá el mouse o tocá cada punto para ver el partido</div>
+  </div>
   <div id="contenido"><div class="loading"><div class="spinner"></div><p style="margin-top:12px">Conectando con Firestore…</p></div></div>
   <div class="foot">Datos en vivo de Firestore · proyecto prode-mundial-26</div>
 </div>
@@ -451,6 +457,131 @@ async function fbGetCuotas(){
 
 function norm(s){ return (s||'').toString().trim().toLowerCase(); }
 
+// ============================================================
+// GRÁFICO comparado (Chart.js)
+// ============================================================
+let chartFichas = null;
+const COLORES = {
+  'guido guelman': '#74acdf',
+  'tomas williams': '#f5b800'
+};
+const COLORES_FALLBACK = ['#74acdf', '#f5b800'];
+
+function buildPunto(fila){
+  // info paralela para el tooltip de cada punto liquidado
+  const {p, r, ap, delta, saldo} = fila;
+  const partido = `${nombreEquipo(p[3])} vs ${nombreEquipo(p[4])}`;
+  let pick;
+  if(!ap.op){
+    pick = 'no jugó';
+  } else {
+    const marc = (ap.gL!==null && ap.gV!==null) ? ` (${ap.gL}-${ap.gV})` : '';
+    pick = `${ap.op}${marc}`;
+  }
+  const realMarc = (r.gL!=null && r.gV!=null) ? `${r.gL}-${r.gV}` : (r.real||'');
+  return {
+    partido,
+    pick,
+    real: realMarc,
+    delta: (delta>=0?'+':'') + fmt(delta),
+    saldo: fmt(saldo)
+  };
+}
+
+function renderGrafico(jugadores){
+  // Series alineadas: todos comparten el mismo conjunto de partidos liquidados
+  // (mismo FX con resultado). buildFilas ya filtra y ordena cronológicamente.
+  const series = [];
+  for(const nombre of JUGADORES_AUDITAR){
+    const j = jugadores.find(x=>norm(x.nombre)===norm(nombre));
+    if(!j) continue;
+    const filas = buildFilas(j);
+    // Punto 0 = saldo inicial; luego un punto por partido liquidado
+    const data = [FICHAS_INI, ...filas.map(f=>f.saldo)];
+    const meta = [null, ...filas.map(buildPunto)]; // info paralela; null en el arranque
+    series.push({ nombre: j.nombre, data, meta });
+  }
+  if(!series.length) return;
+
+  // Eje X: arranque + número de partido jugado (1,2,3,…)
+  const maxLen = Math.max(...series.map(s=>s.data.length));
+  const labels = Array.from({length:maxLen}, (_,i)=> i===0 ? 'Inicio' : 'P'+i);
+
+  const datasets = series.map((s,idx)=>{
+    const color = COLORES[norm(s.nombre)] || COLORES_FALLBACK[idx % COLORES_FALLBACK.length];
+    return {
+      label: s.nombre,
+      data: s.data,
+      _meta: s.meta,
+      borderColor: color,
+      backgroundColor: color,
+      borderWidth: 3,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 6,
+      pointBackgroundColor: color,
+      fill: false
+    };
+  });
+
+  document.getElementById('grafico-card').style.display = '';
+  const ctx = document.getElementById('grafico-fichas').getContext('2d');
+  if(chartFichas) chartFichas.destroy();
+  chartFichas = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: { mode: 'nearest', intersect: true },
+      plugins: {
+        legend: {
+          labels: { color: '#eef4fb', font: { size: 13 } }
+        },
+        tooltip: {
+          backgroundColor: '#0a1628',
+          borderColor: 'rgba(255,255,255,0.15)',
+          borderWidth: 1,
+          titleColor: '#f5b800',
+          bodyColor: '#eef4fb',
+          padding: 10,
+          callbacks: {
+            title: (items)=>{
+              const it = items[0];
+              const info = it.dataset._meta[it.dataIndex];
+              return info ? info.partido : 'Inicio';
+            },
+            label: (it)=>{
+              const info = it.dataset._meta[it.dataIndex];
+              if(!info){
+                return `${it.dataset.label} · Saldo: ${fmt(it.parsed.y)}`;
+              }
+              return [
+                it.dataset.label,
+                `Tu pick: ${info.pick}`,
+                `Resultado: ${info.real}`,
+                `Fichas: ${info.delta}`,
+                `Saldo: ${info.saldo}`
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#9fb3cc' },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        y: {
+          ticks: { color: '#9fb3cc' },
+          grid: { color: 'rgba(255,255,255,0.07)' },
+          title: { display: true, text: 'Fichas', color: '#9fb3cc' }
+        }
+      }
+    }
+  });
+}
+
 async function main(){
   const cont = document.getElementById('contenido');
   try{
@@ -470,6 +601,7 @@ async function main(){
       html += renderJugador(j);
     }
     cont.innerHTML = html;
+    renderGrafico(jugadores);
   }catch(e){
     cont.innerHTML = `<div class="err">Error al cargar datos de Firestore:<br>${(e && e.message) ? e.message : e}</div>`;
     console.error(e);
