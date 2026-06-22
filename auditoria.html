@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Auditoría de Fichas · Prode Chaquiense</title>
+<style>
+:root{
+  --bg:#0a1628; --bg2:#0f1d33; --card:#142441; --card2:#1a2d4f; --borde:#1f3866;
+  --celeste:#74ACDF; --celeste-l:#a8c8e8; --azul-d:#0c1f47;
+  --dorado:#FFCC00; --dorado-l:#ffe066; --rojo:#e63946; --verde:#10b981;
+  --texto:#eef4fb; --muted:#7a92b5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  background:var(--bg);color:var(--texto);
+  font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  font-size:15px;line-height:1.5;min-height:100vh;-webkit-font-smoothing:antialiased;
+}
+body{padding:16px 12px 60px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:24px;letter-spacing:1px;color:var(--celeste);margin-bottom:4px}
+.sub{color:var(--muted);font-size:12px;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:20px}
+.loading{text-align:center;padding:50px 20px;color:var(--muted)}
+.spinner{display:inline-block;width:30px;height:30px;border:3px solid var(--borde);border-top-color:var(--celeste);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{background:rgba(230,57,70,.12);border:1px solid var(--rojo);color:#ffb3ba;border-radius:10px;padding:14px;font-size:13px}
+
+.jcard{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:16px;margin-bottom:26px}
+.jhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:6px}
+.jhead h2{font-size:20px;color:var(--texto)}
+.jtotal{font-size:26px;font-weight:800;color:var(--dorado);letter-spacing:1px;margin-left:auto}
+.jdetalle{font-size:12px;color:var(--muted);margin-bottom:14px;letter-spacing:.3px}
+.jdetalle b{color:var(--celeste-l)}
+.jdetalle .a{color:var(--verde)} .jdetalle .e{color:var(--dorado)} .jdetalle .f{color:var(--rojo)}
+
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+th{text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;padding:8px 8px;border-bottom:1px solid var(--borde)}
+td{padding:8px 8px;border-bottom:1px solid rgba(31,56,102,.5);vertical-align:middle}
+th.num,td.num{text-align:right;white-space:nowrap}
+tr.acierto td:first-child{border-left:3px solid var(--verde)}
+tr.exacto  td:first-child{border-left:3px solid var(--dorado)}
+tr.fallo   td:first-child{border-left:3px solid #44546e}
+.tag{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;letter-spacing:.5px}
+.tag.acierto{background:rgba(16,185,129,.18);color:#6ee7b7}
+.tag.exacto{background:rgba(255,204,0,.18);color:var(--dorado-l)}
+.tag.fallo{background:rgba(120,140,170,.18);color:#9fb3cc}
+.tag.sin{background:rgba(120,140,170,.12);color:#7a92b5}
+.delta.pos{color:var(--verde);font-weight:700}
+.delta.neg{color:var(--rojo);font-weight:700}
+.saldo{font-weight:800;color:var(--celeste-l)}
+.pron,.real{font-variant-numeric:tabular-nums}
+.op{font-weight:800;color:var(--celeste)}
+.marcador{color:var(--muted);font-size:12px}
+.equipos{font-weight:600}
+.flag{font-size:15px}
+.mid{color:var(--muted);font-size:11px}
+.foot{color:var(--muted);font-size:11px;text-align:center;margin-top:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔍 Auditoría de Fichas</h1>
+  <div class="sub">Liquidación partido por partido · lógica idéntica a la app (calcFichas)</div>
+  <div id="contenido"><div class="loading"><div class="spinner"></div><p style="margin-top:12px">Conectando con Firestore…</p></div></div>
+  <div class="foot">Datos en vivo de Firestore · proyecto prode-mundial-26</div>
+</div>
+
+<script type="module">
+// ============================================================
+// IMPORTS Y CONFIG (copiados tal cual de app.js)
+// ============================================================
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
+import {
+  getFirestore, doc, getDoc, collection, getDocs
+} from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCq5_wwdc7lipXPqaH6_CYZSIUEFj81yBI",
+  authDomain: "prode-mundial-26.firebaseapp.com",
+  projectId: "prode-mundial-26",
+  storageBucket: "prode-mundial-26.firebasestorage.app",
+  messagingSenderId: "112140770068",
+  appId: "1:112140770068:web:7c364985a7a4f05b3b0001"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
+
+const FICHAS_INI  = 104;
+
+// ============================================================
+// EQUIPOS (copiado tal cual de app.js)
+// ============================================================
+const EQ = {
+  MEX:{n:'México',f:'🇲🇽'}, RSA:{n:'Sudáfrica',f:'🇿🇦'}, KOR:{n:'Corea del Sur',f:'🇰🇷'}, CZE:{n:'República Checa',f:'🇨🇿'},
+  CAN:{n:'Canadá',f:'🇨🇦'}, SUI:{n:'Suiza',f:'🇨🇭'}, QAT:{n:'Qatar',f:'🇶🇦'}, BIH:{n:'Bosnia y Herzegovina',f:'🇧🇦'},
+  BRA:{n:'Brasil',f:'🇧🇷'}, MAR:{n:'Marruecos',f:'🇲🇦'}, HAI:{n:'Haití',f:'🇭🇹'}, SCO:{n:'Escocia',f:'🏴󠁧󠁢󠁳󠁣󠁴󠁿'},
+  USA:{n:'Estados Unidos',f:'🇺🇸'}, PAR:{n:'Paraguay',f:'🇵🇾'}, AUS:{n:'Australia',f:'🇦🇺'}, TUR:{n:'Turquía',f:'🇹🇷'},
+  GER:{n:'Alemania',f:'🇩🇪'}, CUW:{n:'Curazao',f:'🇨🇼'}, CIV:{n:'Costa de Marfil',f:'🇨🇮'}, ECU:{n:'Ecuador',f:'🇪🇨'},
+  NED:{n:'Países Bajos',f:'🇳🇱'}, JPN:{n:'Japón',f:'🇯🇵'}, TUN:{n:'Túnez',f:'🇹🇳'}, SWE:{n:'Suecia',f:'🇸🇪'},
+  BEL:{n:'Bélgica',f:'🇧🇪'}, EGY:{n:'Egipto',f:'🇪🇬'}, IRN:{n:'Irán',f:'🇮🇷'}, NZL:{n:'Nueva Zelanda',f:'🇳🇿'},
+  ESP:{n:'España',f:'🇪🇸'}, CPV:{n:'Cabo Verde',f:'🇨🇻'}, KSA:{n:'Arabia Saudita',f:'🇸🇦'}, URU:{n:'Uruguay',f:'🇺🇾'},
+  FRA:{n:'Francia',f:'🇫🇷'}, SEN:{n:'Senegal',f:'🇸🇳'}, IRQ:{n:'Irak',f:'🇮🇶'}, NOR:{n:'Noruega',f:'🇳🇴'},
+  ARG:{n:'Argentina',f:'🇦🇷'}, ALG:{n:'Argelia',f:'🇩🇿'}, AUT:{n:'Austria',f:'🇦🇹'}, JOR:{n:'Jordania',f:'🇯🇴'},
+  POR:{n:'Portugal',f:'🇵🇹'}, COD:{n:'Rep. Dem. del Congo',f:'🇨🇩'}, UZB:{n:'Uzbekistán',f:'🇺🇿'}, COL:{n:'Colombia',f:'🇨🇴'},
+  ENG:{n:'Inglaterra',f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿'}, CRO:{n:'Croacia',f:'🇭🇷'}, GHA:{n:'Ghana',f:'🇬🇭'}, PAN:{n:'Panamá',f:'🇵🇦'}
+};
+
+// ============================================================
+// FIXTURE (constante FX completa, copiada tal cual de app.js)
+// ============================================================
+const FX = [
+  ['M1','11/06','16:00','MEX','RSA','grupos','A',1.85,3.40,4.50],
+  ['M2','11/06','23:00','KOR','CZE','grupos','A',2.30,3.10,3.20],
+  ['M3','12/06','16:00','CAN','BIH','grupos','B',1.95,3.30,4.00],
+  ['M4','12/06','22:00','USA','PAR','grupos','D',1.75,3.50,4.80],
+  ['M5','14/06','01:00','AUS','TUR','grupos','D',3.00,3.20,2.40],
+  ['M6','13/06','19:00','BRA','MAR','grupos','C',1.55,4.00,6.00],
+  ['M7','13/06','22:00','HAI','SCO','grupos','C',5.50,3.40,1.65],
+  ['M8','13/06','16:00','SUI','QAT','grupos','B',1.40,4.50,7.50],
+  ['M9','16/06','22:00','ARG','ALG','grupos','J',1.35,4.80,8.00],
+  ['M10','14/06','14:00','GER','CUW','grupos','E',1.20,6.50,12.00],
+  ['M11','14/06','17:00','NED','JPN','grupos','F',1.65,3.80,5.00],
+  ['M12','14/06','20:00','CIV','ECU','grupos','E',2.40,3.10,3.00],
+  ['M13','14/06','23:00','SWE','TUN','grupos','F',2.05,3.20,3.80],
+  ['M14','15/06','13:00','ESP','CPV','grupos','H',1.20,6.00,12.00],
+  ['M15','21/06','16:00','BEL','IRN','grupos','G',1.65,3.80,5.20],
+  ['M16','21/06','22:00','NZL','EGY','grupos','G',4.50,3.30,1.80],
+  ['M17','17/06','01:00','AUT','JOR','grupos','J',1.50,4.00,6.50],
+  ['M18','16/06','16:00','FRA','SEN','grupos','I',1.65,3.80,5.00],
+  ['M19','16/06','19:00','IRQ','NOR','grupos','I',5.50,3.60,1.65],
+  ['M20','17/06','14:00','POR','COD','grupos','K',1.30,5.00,9.00],
+  ['M21','17/06','17:00','ENG','CRO','grupos','L',2.00,3.30,3.80],
+  ['M22','17/06','20:00','GHA','PAN','grupos','L',2.10,3.20,3.60],
+  ['M22b','15/06','19:00','URU','KSA','grupos','H',1.50,4.00,6.50],
+  ['M23','17/06','23:00','UZB','COL','grupos','K',4.50,3.30,1.80],
+  ['M24','18/06','13:00','CZE','RSA','grupos','A',2.10,3.10,3.80],
+  ['M25','18/06','22:00','MEX','KOR','grupos','A',2.05,3.20,3.70],
+  ['M26','19/06','16:00','USA','AUS','grupos','D',1.70,3.60,5.00],
+  ['M27','18/06','16:00','BIH','SUI','grupos','B',3.50,3.20,2.10],
+  ['M28','20/06','00:00','TUR','PAR','grupos','D',2.10,3.10,3.70],
+  ['M29','18/06','19:00','QAT','CAN','grupos','B',5.00,3.50,1.70],
+  ['M30','19/06','19:00','SCO','MAR','grupos','C',3.00,3.20,2.40],
+  ['M31','19/06','21:30','BRA','HAI','grupos','C',1.20,6.50,12.00],
+  ['M32','20/06','14:00','NED','SWE','grupos','F',1.70,3.70,5.00],
+  ['M33','20/06','17:00','GER','CIV','grupos','E',1.45,4.30,7.00],
+  ['M34','20/06','21:00','CUW','ECU','grupos','E',5.50,3.70,1.55],
+  ['M35','21/06','01:00','TUN','JPN','grupos','F',3.80,3.20,2.05],
+  ['M36','21/06','13:00','ESP','KSA','grupos','H',1.25,5.50,10.00],
+  ['M37','15/06','16:00','BEL','EGY','grupos','G',1.55,4.00,6.50],
+  ['M38','21/06','19:00','URU','CPV','grupos','H',1.40,4.50,7.00],
+  ['M39','15/06','22:00','NZL','IRN','grupos','G',5.00,3.40,1.75],
+  ['M40','22/06','14:00','ARG','AUT','grupos','J',1.45,4.20,7.00],
+  ['M41','22/06','18:00','FRA','IRQ','grupos','I',1.20,6.50,12.00],
+  ['M42','22/06','21:00','NOR','SEN','grupos','I',2.30,3.30,3.10],
+  ['M43','23/06','00:00','JOR','ALG','grupos','J',5.00,3.40,1.75],
+  ['M44','23/06','14:00','POR','UZB','grupos','K',1.35,4.80,8.00],
+  ['M45','27/06','18:00','CRO','GHA','grupos','L',1.65,3.80,5.00],
+  ['M46','27/06','18:00','PAN','ENG','grupos','L',6.50,3.80,1.50],
+  ['M47','23/06','23:00','COL','COD','grupos','K',1.50,4.10,6.50],
+  ['M48','24/06','22:00','CZE','MEX','grupos','A',3.20,3.10,2.30],
+  ['M49','24/06','22:00','RSA','KOR','grupos','A',3.20,3.20,2.25],
+  ['M50','25/06','23:00','TUR','USA','grupos','D',3.00,3.20,2.40],
+  ['M51','25/06','23:00','PAR','AUS','grupos','D',2.20,3.10,3.40],
+  ['M52','24/06','16:00','SUI','CAN','grupos','B',2.30,3.20,3.20],
+  ['M53','24/06','16:00','BIH','QAT','grupos','B',1.65,3.70,5.00],
+  ['M54','24/06','19:00','SCO','BRA','grupos','C',7.00,4.00,1.45],
+  ['M55','24/06','19:00','MAR','HAI','grupos','C',1.30,5.00,9.00],
+  ['M56','25/06','17:00','ECU','GER','grupos','E',5.00,3.50,1.70],
+  ['M57','25/06','17:00','CUW','CIV','grupos','E',7.50,4.20,1.40],
+  ['M58','25/06','20:00','JPN','SWE','grupos','F',2.50,3.20,2.80],
+  ['M59','25/06','20:00','TUN','NED','grupos','F',5.50,3.70,1.55],
+  ['M60','26/06','21:00','CPV','KSA','grupos','H',2.80,3.10,2.60],
+  ['M61','26/06','21:00','URU','ESP','grupos','H',4.00,3.40,1.85],
+  ['M62','27/06','00:00','EGY','IRN','grupos','G',2.80,3.10,2.55],
+  ['M63','27/06','00:00','NZL','BEL','grupos','G',7.00,4.00,1.45],
+  ['M64','23/06','17:00','ENG','GHA','grupos','L',1.50,4.00,6.00],
+  ['M65','23/06','20:00','CRO','PAN','grupos','L',1.55,3.90,6.50],
+  ['M66','27/06','20:30','COL','POR','grupos','K',3.40,3.20,2.10],
+  ['M67','27/06','20:30','COD','UZB','grupos','K',2.50,3.10,2.80],
+  ['M68','27/06','23:00','ALG','AUT','grupos','J',2.80,3.20,2.50],
+  ['M69','27/06','23:00','JOR','ARG','grupos','J',9.00,5.00,1.30],
+  ['M70','26/06','16:00','NOR','FRA','grupos','I',2.80,3.30,2.50],
+  ['M71','26/06','16:00','SEN','IRQ','grupos','I',1.45,4.00,7.50],
+  ['M72','03/07','14:00','?A2','?B2','r32','-',2.10,3.20,3.30],
+  ['M73','03/07','17:00','?E1','?3F','r32','-',1.80,3.40,4.20],
+  ['M74','04/07','14:00','?F1','?C2','r32','-',2.00,3.30,3.50],
+  ['M75','04/07','17:00','?C1','?F2','r32','-',1.85,3.40,4.00],
+  ['M76','04/07','21:00','?B1','?3E','r32','-',1.85,3.40,4.00],
+  ['M77','05/07','14:00','?A1','?3C','r32','-',1.85,3.40,4.00],
+  ['M78','05/07','17:00','?D2','?G2','r32','-',2.10,3.20,3.30],
+  ['M79','05/07','21:00','?H1','?3D','r32','-',1.80,3.40,4.20],
+  ['M80','06/07','14:00','?I1','?3B','r32','-',1.80,3.40,4.20],
+  ['M81','06/07','21:00','?L1','?3J','r32','-',1.85,3.40,4.00],
+  ['M82','07/07','14:00','?J1','?H2','r32','-',1.95,3.30,3.70],
+  ['M83','07/07','17:00','?K1','?3I','r32','-',1.85,3.40,4.00],
+  ['M84','07/07','21:00','?G1','?D2b','r32','-',1.95,3.30,3.70],
+  ['M85','08/07','14:00','?I2','?L2','r32','-',2.10,3.20,3.30],
+  ['M86','08/07','17:00','?J2','?K2','r32','-',2.05,3.20,3.40],
+  ['M87','08/07','21:00','?E2','?I2b','r32','-',2.10,3.20,3.30],
+  ['M88','11/07','14:00','?W72','?W73','r16','-',2.00,3.30,3.50],
+  ['M89','11/07','17:00','?W74','?W75','r16','-',2.00,3.30,3.50],
+  ['M90','12/07','14:00','?W76','?W77','r16','-',2.00,3.30,3.50],
+  ['M91','12/07','17:00','?W78','?W79','r16','-',2.00,3.30,3.50],
+  ['M92','13/07','14:00','?W80','?W81','r16','-',2.00,3.30,3.50],
+  ['M93','13/07','17:00','?W82','?W83','r16','-',2.00,3.30,3.50],
+  ['M94','14/07','14:00','?W84','?W85','r16','-',2.00,3.30,3.50],
+  ['M95','14/07','17:00','?W86','?W87','r16','-',2.00,3.30,3.50],
+  ['M96','17/07','17:00','?W88','?W89','qf','-',2.10,3.30,3.30],
+  ['M97','17/07','21:00','?W90','?W91','qf','-',2.10,3.30,3.30],
+  ['M98','18/07','17:00','?W92','?W93','qf','-',2.10,3.30,3.30],
+  ['M99','18/07','21:00','?W94','?W95','qf','-',2.10,3.30,3.30],
+  ['M100','22/07','17:00','?W96','?W97','sf','-',2.20,3.20,3.10],
+  ['M101','22/07','21:00','?W98','?W99','sf','-',2.20,3.20,3.10],
+  ['M102','25/07','17:00','?L100','?L101','final','3°',2.20,3.20,3.10],
+  ['M103','26/07','17:00','?W100','?W101','final','FINAL',2.30,3.20,3.00]
+];
+
+// ============================================================
+// cuotasOverride / getCuotas (copiado tal cual de app.js)
+// ============================================================
+let cuotasOverride = {};
+function getCuotas(id, defL, defE, defV){
+  const o = cuotasOverride[id];
+  return o ? [o.cL, o.cE, o.cV] : [defL, defE, defV];
+}
+
+// Estado mínimo: la app usa S.resultados dentro de calcFichas/esCerrado
+const S = { resultados: {} };
+
+// ============================================================
+// Funciones copiadas tal cual de app.js
+// ============================================================
+function parseFechaPartido(fecha, hora){
+  const [dia, mes] = fecha.split('/');
+  const [hh, mm]   = hora.split(':');
+  return new Date(`2026-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}T${hh}:${mm}:00-03:00`);
+}
+
+// Partido cerrado = tiene resultado real OR faltan ≤ 2 min para empezar
+function esCerrado(p){
+  if(S.resultados[p[0]]?.real) return true;
+  if(p[3].startsWith('?')) return false; // knockout sin equipos aún
+  const inicio = parseFechaPartido(p[1], p[2]);
+  return Date.now() >= inicio.getTime() - 2 * 60 * 1000;
+}
+
+// Normalizar pronóstico al nuevo formato
+function normPron(v){
+  if(!v) return {op:null, gL:null, gV:null};
+  if(typeof v === 'string') return {op:v, gL:null, gV:null};
+  return v;
+}
+
+function calcFichas(j){
+  let fichas=FICHAS_INI, aciertos=0, exactos=0, fallados=0, sinApostar=0, pendientes=0;
+  const pron=j.pronosticos||{};
+  FX.forEach(p=>{
+    const r=S.resultados[p[0]];
+    const [cL,cE,cV] = getCuotas(p[0], p[7], p[8], p[9]);
+    if(r?.real){
+      fichas -= 1; // costo de la ficha
+      const ap = normPron(pron[p[0]]);
+      if(!ap.op){
+        sinApostar++;
+      } else if(ap.op === r.real){
+        const cuota = {'1':cL,'X':cE,'2':cV}[ap.op]||1;
+        // Resultado exacto: ganancia ×2
+        if(ap.gL !== null && ap.gV !== null && ap.gL === r.gL && ap.gV === r.gV){
+          fichas += cuota * 2 - 1;
+          exactos++;
+        } else {
+          fichas += cuota;
+        }
+        aciertos++;
+      } else {
+        fallados++;
+      }
+    } else {
+      const ap = normPron(pron[p[0]]);
+      if(!p[3].startsWith('?') && !esCerrado(p) && !ap.op) pendientes++;
+    }
+  });
+  return {
+    fichas: Math.round(fichas*100)/100,
+    aciertos, exactos, fallados, sinApostar, pendientes
+  };
+}
+
+// ============================================================
+// AUDITORÍA: filas partido por partido (misma fórmula que calcFichas)
+// ============================================================
+const JUGADORES_AUDITAR = ['Guido Guelman', 'Tomas Williams'];
+
+const OP_TXT = {'1':'1','X':'X','2':'2'};
+
+function nombreEquipo(code){
+  if(!code) return '?';
+  const c = code.startsWith('?') ? code.slice(1) : code;
+  return EQ[c] ? EQ[c].n : code;
+}
+function flagEquipo(code){
+  const c = (code||'').startsWith('?') ? code.slice(1) : code;
+  return EQ[c] ? EQ[c].f : '';
+}
+
+function buildFilas(j){
+  // Mismos criterios que calcFichas: solo partidos con resultado real.
+  // Orden cronológico con parseFechaPartido.
+  const pron = j.pronosticos||{};
+  const jugados = FX.filter(p=>S.resultados[p[0]]?.real)
+    .sort((a,b)=>parseFechaPartido(a[1],a[2]).getTime()-parseFechaPartido(b[1],b[2]).getTime());
+
+  let saldo = FICHAS_INI;
+  const filas = [];
+  jugados.forEach(p=>{
+    const r = S.resultados[p[0]];
+    const [cL,cE,cV] = getCuotas(p[0], p[7], p[8], p[9]);
+    const ap = normPron(pron[p[0]]);
+
+    // Replica EXACTA del bloque de calcFichas para un partido liquidado
+    let delta = -1; // costo de la ficha
+    let tipo = 'fallo'; // fallo | sinApostar | acierto | exacto
+    if(!ap.op){
+      tipo = 'sinApostar';
+    } else if(ap.op === r.real){
+      const cuota = {'1':cL,'X':cE,'2':cV}[ap.op]||1;
+      if(ap.gL !== null && ap.gV !== null && ap.gL === r.gL && ap.gV === r.gV){
+        delta += cuota * 2 - 1; // ganancia ×2 (fórmula app: cuota*2-1)
+        tipo = 'exacto';
+      } else {
+        delta += cuota;
+        tipo = 'acierto';
+      }
+    } else {
+      tipo = 'fallo';
+    }
+    delta = Math.round(delta*100)/100;
+    saldo = Math.round((saldo + delta)*100)/100;
+
+    filas.push({ p, r, ap, delta, saldo, tipo });
+  });
+  return filas;
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function fmt(n){
+  // entero limpio o hasta 2 decimales
+  return (Math.round(n*100)/100).toString();
+}
+
+function renderJugador(j){
+  const stats = calcFichas(j);
+  const filas = buildFilas(j);
+  const totalFilas = filas.length ? filas[filas.length-1].saldo : FICHAS_INI;
+
+  let rows = '';
+  filas.forEach(({p,r,ap,delta,saldo,tipo})=>{
+    const local = nombreEquipo(p[3]), visit = nombreEquipo(p[4]);
+    const fl = flagEquipo(p[3]), fv = flagEquipo(p[4]);
+
+    // Tu pronóstico
+    let pronTxt;
+    if(!ap.op){
+      pronTxt = '<span class="tag sin">SIN APOSTAR</span>';
+    } else {
+      const marc = (ap.gL!==null && ap.gV!==null) ? ` <span class="marcador">${ap.gL}-${ap.gV}</span>` : '';
+      pronTxt = `<span class="op">${OP_TXT[ap.op]}</span>${marc}`;
+    }
+    // Resultado real
+    const realMarc = (r.gL!=null && r.gV!=null) ? `${r.gL}-${r.gV}` : '';
+    const realTxt = `<span class="op">${OP_TXT[r.real]||r.real}</span> <span class="marcador">${realMarc}</span>`;
+
+    let tag;
+    if(tipo==='exacto')   tag='<span class="tag exacto">EXACTO</span>';
+    else if(tipo==='acierto') tag='<span class="tag acierto">ACIERTO</span>';
+    else if(tipo==='sinApostar') tag='<span class="tag sin">NO JUGÓ</span>';
+    else tag='<span class="tag fallo">FALLO</span>';
+
+    const trClass = (tipo==='exacto') ? 'exacto' : (tipo==='acierto' ? 'acierto' : 'fallo');
+    const deltaClass = delta>=0 ? 'pos' : 'neg';
+    const deltaTxt = (delta>=0?'+':'') + fmt(delta);
+
+    rows += `<tr class="${trClass}">
+      <td><div class="equipos"><span class="flag">${fl}</span> ${local} <span class="mid">vs</span> ${visit} <span class="flag">${fv}</span></div><div class="mid">${p[0]} · ${p[1]} ${p[2]}</div></td>
+      <td class="pron">${pronTxt}</td>
+      <td class="real">${realTxt}</td>
+      <td>${tag}</td>
+      <td class="num"><span class="delta ${deltaClass}">${deltaTxt}</span></td>
+      <td class="num"><span class="saldo">${fmt(saldo)}</span></td>
+    </tr>`;
+  });
+
+  if(!rows){
+    rows = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Todavía no hay partidos liquidados.</td></tr>`;
+  }
+
+  // Verificación: total de la tabla debe coincidir con calcFichas
+  const coincide = (totalFilas === stats.fichas);
+  const aviso = coincide ? '' :
+    `<div class="err" style="margin-bottom:12px">⚠️ Saldo de tabla (${fmt(totalFilas)}) ≠ calcFichas (${fmt(stats.fichas)})</div>`;
+
+  return `<div class="jcard">
+    ${aviso}
+    <div class="jhead">
+      <h2>${j.nombre}</h2>
+      <div class="jtotal">${fmt(stats.fichas)} 🎟️</div>
+    </div>
+    <div class="jdetalle">
+      <b>Aciertos:</b> <span class="a">${stats.aciertos}</span> &nbsp;·&nbsp;
+      <b>Exactos:</b> <span class="e">${stats.exactos}</span> &nbsp;·&nbsp;
+      <b>Fallos:</b> <span class="f">${stats.fallados}</span> &nbsp;·&nbsp;
+      <b>No jugó:</b> ${stats.sinApostar} &nbsp;·&nbsp;
+      <b>Partidos liquidados:</b> ${filas.length}
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Partido</th>
+          <th>Tu pronóstico</th>
+          <th>Resultado real</th>
+          <th>Estado</th>
+          <th class="num">Fichas</th>
+          <th class="num">Saldo</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// CARGA DE DATOS (Firestore en vivo, mismas colecciones que la app)
+// ============================================================
+async function fbGetJugadores(){
+  const snap = await getDocs(collection(db,'jugadores'));
+  return snap.docs.map(d=>d.data());
+}
+async function fbGetResultados(){
+  const s = await getDoc(doc(db,'resultados','main'));
+  return s.exists() ? (s.data().resultados||{}) : {};
+}
+async function fbGetCuotas(){
+  const s = await getDoc(doc(db,'cuotas','main'));
+  return s.exists() ? (s.data().cuotas||{}) : {};
+}
+
+function norm(s){ return (s||'').toString().trim().toLowerCase(); }
+
+async function main(){
+  const cont = document.getElementById('contenido');
+  try{
+    const [jugadores, resultados, cuotas] = await Promise.all([
+      fbGetJugadores(), fbGetResultados(), fbGetCuotas()
+    ]);
+    S.resultados = resultados || {};
+    cuotasOverride = cuotas || {};
+
+    let html = '';
+    for(const nombre of JUGADORES_AUDITAR){
+      const j = jugadores.find(x=>norm(x.nombre)===norm(nombre));
+      if(!j){
+        html += `<div class="jcard"><div class="jhead"><h2>${nombre}</h2></div><div class="err">No se encontró este jugador en Firestore.</div></div>`;
+        continue;
+      }
+      html += renderJugador(j);
+    }
+    cont.innerHTML = html;
+  }catch(e){
+    cont.innerHTML = `<div class="err">Error al cargar datos de Firestore:<br>${(e && e.message) ? e.message : e}</div>`;
+    console.error(e);
+  }
+}
+
+main();
+</script>
+</body>
+</html>
