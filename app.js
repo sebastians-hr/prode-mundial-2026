@@ -352,6 +352,8 @@ document.addEventListener('click', async e=>{
     if(a==='actualizar-cuotas')       { actualizarCuotas(); return; }
     if(a==='resetear-pin')            { resetearPin(); return; }
     if(a==='cargar-resultado'){ cargarResultadoManual(); return; }
+    if(a==='cargar-res-partido'){ cargarResPartido(ac.dataset.id); return; }
+    if(a==='cerrar-cargares'){ document.getElementById('modal-cargares')?.remove(); return; }
     if(a==='editar-pron-admin'){ editarPronosticoAdmin(); return; }
     if(a==='descargar-backup')        { descargarBackup(); return; }
     if(a==='invertidos-walter'){ aplicarInvertidosWalter(); return; }
@@ -791,32 +793,50 @@ async function editarPronosticoAdmin(){
   toast(`✓ ${jug.nombre}: ${eq} ${gL}-${gV} cargado`,'success');
 }
 
-async function cargarResultadoManual(){
+function cargarResultadoManual(){
   if(!S.isAdmin){ toast('Solo admin','error'); return; }
-  const candidatos = FX.filter(p=>esCerrado(p) && !p[3].startsWith('?'));
+  const candidatos = FX.filter(p=>esCerrado(p) && !p[3].startsWith('?'))
+    .sort((a,b)=>parseFechaPartido(b[1],b[2])-parseFechaPartido(a[1],a[2]));
   if(!candidatos.length){ toast('No hay partidos cerrados','error'); return; }
-  const lista = candidatos.map((p,i)=>{
+  const filas = candidatos.map(p=>{
     const r=S.resultados[p[0]];
     const eq=`${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
-    return `${i+1}. ${eq} (${p[1]})${r?` [cargado ${r.gL}-${r.gV}]`:''}`;
-  }).join('\n');
-  const sel = prompt(`Cargar/corregir resultado manual.\nElegí el número:\n${lista}`);
-  const n = parseInt(sel);
-  if(!n||n<1||n>candidatos.length){ if(sel!==null) toast('Número inválido','error'); return; }
-  const p = candidatos[n-1];
+    const estado = r?.real ? `<span style="color:#2ecc71;font-weight:700">${r.gL}-${r.gV} ✓</span>` : `<span style="color:#9fb3cc">sin cargar</span>`;
+    return `<div data-action="cargar-res-partido" data-id="${p[0]}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 8px;border-bottom:1px solid rgba(255,255,255,0.07);cursor:pointer">
+      <div><div style="font-size:14px;color:#dfe9f5">${esc(eq)}</div><div style="font-size:11px;color:#7d8da3">${p[1]} ${p[2]}hs</div></div>
+      <div style="font-size:13px;white-space:nowrap">${estado}</div>
+    </div>`;
+  }).join('');
+  const ov=document.createElement('div');
+  ov.id='modal-cargares';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
+  ov.innerHTML=`<div style="max-width:620px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px">
+    <h3 style="margin:0 0 4px;color:var(--dorado,#f5b800);font-family:var(--condensed)">⚽ CARGAR RESULTADO</h3>
+    <div style="font-size:12px;color:#9fb3cc;margin-bottom:12px">Tocá el partido que querés cargar o corregir (${candidatos.length} cerrados)</div>
+    <div>${filas}</div>
+    <button class="btn-grande btn-secundario" data-action="cerrar-cargares" style="margin-top:14px;width:100%">Cerrar</button>
+  </div>`;
+  ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
+
+function cargarResPartido(id){
+  const p = FX.find(x=>x[0]===id); if(!p){ toast('Partido no encontrado','error'); return; }
   const eq=`${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
-  const marc = prompt(`Resultado FINAL de ${eq}\nFormato: golesLocal-golesVisitante (ej: 2-1)`);
+  const r=S.resultados[id];
+  const marc = prompt(`Resultado FINAL de ${eq}\nFormato: golesLocal-golesVisitante (ej: 2-1)`, r?`${r.gL}-${r.gV}`:'');
   if(marc===null) return;
   const m = marc.trim().match(/^(\d{1,2})\s*-\s*(\d{1,2})$/);
   if(!m){ toast('Formato inválido. Usá ej: 2-1','error'); return; }
   const gL=parseInt(m[1]), gV=parseInt(m[2]);
   const real = gL>gV?'1':(gL<gV?'2':'X');
   if(!confirm(`Confirmar: ${eq} terminó ${gL}-${gV}?\nEsto liquida las fichas de todos.`)) return;
-  S.resultados[p[0]] = {real, gL, gV};
-  await fbSetResultados(S.resultados);
-  await recalcRanking();
-  if(typeof renderPartidos==='function') renderPartidos();
-  toast(`✓ ${eq}: ${gL}-${gV} cargado`,'success');
+  S.resultados[id] = {real, gL, gV};
+  fbSetResultados(S.resultados).then(()=>recalcRanking()).then(()=>{
+    if(typeof renderPartidos==='function') renderPartidos();
+    toast(`✓ ${eq}: ${gL}-${gV} cargado`,'success');
+    document.getElementById('modal-cargares')?.remove();
+  });
 }
 
 async function aplicarInvertidosWalter(){
