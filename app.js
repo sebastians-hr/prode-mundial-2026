@@ -404,6 +404,7 @@ document.addEventListener('click', async e=>{
     if(a==='cerrar-diario'){ document.getElementById('modal-diario')?.remove(); return; }
     if(a==='compartir-diario'){ compartirDiario(); return; }
     if(a==='ver-evolucion'){ abrirEvolucion(); return; }
+    if(a==='abrir-auditoria'){ window.open('auditoria.html','_blank'); return; }
     if(a==='cerrar-evolucion'){ document.getElementById('modal-evolucion')?.remove(); return; }
     if(a==='ver-votantes'){
       const el=document.getElementById('vot-'+ac.dataset.vid+'-'+ac.dataset.op);
