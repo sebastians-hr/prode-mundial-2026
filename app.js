@@ -405,6 +405,8 @@ document.addEventListener('click', async e=>{
     if(a==='compartir-diario'){ compartirDiario(); return; }
     if(a==='ver-evolucion'){ abrirEvolucion(); return; }
     if(a==='abrir-auditoria'){ window.open('auditoria.html','_blank'); return; }
+    if(a==='ver-ranking-puntos'){ abrirRankingPuntos(); return; }
+    if(a==='cerrar-rankpuntos'){ document.getElementById('modal-rankpuntos')?.remove(); return; }
     if(a==='cerrar-evolucion'){ document.getElementById('modal-evolucion')?.remove(); return; }
     if(a==='ver-votantes'){
       const el=document.getElementById('vot-'+ac.dataset.vid+'-'+ac.dataset.op);
@@ -1152,6 +1154,65 @@ function textoDiario(d){
   t+=`🔝 Top 3: `+d.top3.map((r,i)=>`${i+1}° ${r.nombre} (${r.fichas})`).join(' · ');
   t+=`\n\n⚽ ${location.origin}${location.pathname}`;
   return t;
+}
+
+async function abrirRankingPuntos(){
+  const jugadores = await fbGetJugadores();
+  const filas = jugadores.map(j=>{
+    const pron=j.pronosticos||{};
+    let pts=0, aciertos=0, exactos=0;
+    Object.keys(S.resultados).forEach(mid=>{
+      const r=S.resultados[mid]; if(!r?.real) return;
+      const ap=normPron(pron[mid]);
+      if(ap.op && ap.op===r.real){
+        pts+=3; aciertos++;
+        if(ap.gL!==null && ap.gV!==null && ap.gL===r.gL && ap.gV===r.gV){ pts+=3; exactos++; }
+      }
+    });
+    return {id:j.id, nombre:j.nombre, pts, aciertos, exactos};
+  }).sort((a,b)=>b.pts-a.pts || b.exactos-a.exactos || a.nombre.localeCompare(b.nombre));
+
+  const miPos = S.jugador ? filas.findIndex(r=>r.id===S.jugador.id) : -1;
+  const miFila = miPos>=0 ? filas[miPos] : null;
+  const medallas = ['🥇','🥈','🥉'];
+  const fondoPodio = ['rgba(245,184,0,0.16)','rgba(192,192,192,0.14)','rgba(205,127,50,0.16)'];
+  const bordePodio = ['rgba(245,184,0,0.5)','rgba(192,192,192,0.45)','rgba(205,127,50,0.5)'];
+
+  const podioHtml = filas.slice(0,3).map((r,i)=>{
+    const yo = S.jugador && r.id===S.jugador.id;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 12px;margin-bottom:8px;background:${fondoPodio[i]};border:1px solid ${bordePodio[i]};border-radius:12px">
+      <span style="display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:#fff">${medallas[i]} ${esc(r.nombre)}${yo?' <span style="font-size:11px;color:var(--celeste,#74acdf)">(vos)</span>':''}</span>
+      <span style="text-align:right;white-space:nowrap"><b style="font-size:18px;color:var(--dorado,#f5b800)">${r.pts}</b><span style="font-size:11px;color:#9fb3cc"> pts · ${r.aciertos}ac ${r.exactos}ex</span></span>
+    </div>`;
+  }).join('');
+
+  const restoHtml = filas.slice(3).map((r,i)=>{
+    const yo = S.jugador && r.id===S.jugador.id;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 8px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:14px;${yo?'background:rgba(116,172,223,0.14);border-radius:8px':''}">
+      <span style="color:${yo?'var(--celeste,#74acdf)':'#dfe9f5'}"><span style="display:inline-block;width:26px;color:#7d8da3;font-size:12px">${i+4}°</span>${esc(r.nombre)}${yo?' (vos)':''}</span>
+      <span style="text-align:right;white-space:nowrap"><b style="color:#dfe9f5">${r.pts}</b><span style="font-size:11px;color:#9fb3cc"> pts · ${r.aciertos}ac ${r.exactos}ex</span></span>
+    </div>`;
+  }).join('');
+
+  const cabeceraMi = miFila ? `<div style="background:rgba(116,172,223,0.12);border:1px solid rgba(116,172,223,0.35);border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;color:#dfe9f5">Tu posición: <b style="color:var(--celeste,#74acdf)">${miPos+1}°</b> de ${filas.length}</span>
+      <span style="font-size:15px;font-weight:700;color:var(--dorado,#f5b800)">${miFila.pts} pts</span>
+    </div>` : '';
+
+  const ov=document.createElement('div');
+  ov.id='modal-rankpuntos';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
+  ov.innerHTML=`<div style="max-width:560px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px">
+    <h3 style="margin:0 0 4px;color:var(--dorado,#f5b800);font-family:var(--condensed)">🏅 RANKING TIPO MP</h3>
+    <div style="font-size:12px;color:#9fb3cc;margin-bottom:4px">Tabla alternativa NO oficial · no afecta tus fichas ni el pozo</div>
+    <div style="font-size:11px;color:#7d8da3;margin-bottom:14px">Método: 3 puntos por resultado acertado + 3 extra por marcador exacto</div>
+    ${cabeceraMi}
+    ${podioHtml}
+    ${restoHtml}
+    <button class="btn-grande btn-secundario" data-action="cerrar-rankpuntos" style="margin-top:14px;width:100%">Cerrar</button>
+  </div>`;
+  ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
 }
 
 async function abrirDiario(){
