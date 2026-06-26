@@ -31,6 +31,8 @@ const ADMIN_PASS  = 'sebasuez26';
 const CBU_PAGO    = '0000003100056133761644';
 const FICHAS_INI  = 104;
 const ENTRADA     = 20000;
+const T2_ENTRADA = 40000;
+const T2_ALIAS = 'sebastiansuez.mp';
 
 const PREGUNTA_SECRETA  = '¿A qué nombre corresponde el apodo Anibal?';
 const RESPUESTA_SECRETA = 'lucas';
@@ -376,6 +378,12 @@ document.addEventListener('click', async e=>{
       document.getElementById('modal-cbu')?.remove();
       return;
     }
+    if(a==='copiar-alias-t2'){
+      navigator.clipboard.writeText(T2_ALIAS).then(()=>toast('✅ Alias copiado','success')).catch(()=>toast('No se pudo copiar','error'));
+      return;
+    }
+    if(a==='pague-t2'){ pagueT2(); return; }
+    if(a==='cerrar-t2'){ document.getElementById('modal-t2')?.remove(); return; }
     if(a==='toggle-pago-admin'){
       const jid=e.target.dataset.id;
       const j=await fbGetJugador(jid);
@@ -588,6 +596,55 @@ async function iniciarSesion(j){
   if(S.isAdmin && new Date().getDay()===5){
     setTimeout(()=>toast('📅 Es viernes · recordá actualizar las cuotas','info'),2000);
   }
+
+  setTimeout(()=>{ mostrarCartelT2(); }, 800);
+}
+
+async function mostrarCartelT2(){
+  if(!S.jugador) return; // solo a jugadores logueados
+  const jugadores = await fbGetJugadores();
+  const yo = jugadores.find(j=>j.id===S.jugador.id);
+  if(yo && yo.pagoT2) return; // si ya pagó, no mostrar
+  if(document.getElementById('modal-t2')) return; // no duplicar
+  const anotados = jugadores.filter(j=>j.pagoT2);
+  const pozo = anotados.length * T2_ENTRADA;
+  const nombresAnotados = anotados.map(j=>esc(j.nombre)).join(' · ') || 'todavía nadie';
+  const ov=document.createElement('div');
+  ov.id='modal-t2';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;overflow-y:auto;padding:20px 14px;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML=`<div style="max-width:480px;width:100%;background:linear-gradient(160deg,#10182a,#0a1226);border:2px solid var(--dorado,#f5b800);border-radius:20px;padding:24px 20px;box-shadow:0 0 40px rgba(245,184,0,0.2)">
+    <div style="text-align:center;font-size:34px;margin-bottom:4px">🏆⚡</div>
+    <h2 style="text-align:center;margin:0 0 6px;color:var(--dorado,#f5b800);font-family:var(--condensed);font-size:26px;letter-spacing:0.5px">TORNEO 2 · ELIMINATORIAS</h2>
+    <p style="text-align:center;margin:0 0 18px;color:#dfe9f5;font-size:15px;line-height:1.45">Arranca desde 16avos. <b>Todos desde cero.</b><br>Nuevo sistema de puntos · nuevo pozo · nueva chance.</p>
+    <div style="background:rgba(245,184,0,0.1);border-radius:12px;padding:14px;margin-bottom:16px;text-align:center">
+      <div style="font-size:13px;color:#9fb3cc">Entrada</div>
+      <div style="font-size:32px;font-weight:800;color:#fff">$${T2_ENTRADA.toLocaleString('es-AR')}</div>
+      <div style="font-size:13px;color:#9fb3cc;margin-top:6px">💰 Pozo actual: <b style="color:var(--dorado,#f5b800)">$${pozo.toLocaleString('es-AR')}</b> · ${anotados.length} anotados</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:12px;color:#9fb3cc;margin-bottom:6px">Transferí a este alias de Mercado Pago:</div>
+      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <code style="font-size:17px;color:#fff;font-weight:700">${T2_ALIAS}</code>
+        <button data-action="copiar-alias-t2" style="background:var(--dorado,#f5b800);color:#000;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;white-space:nowrap">📋 Copiar</button>
+      </div>
+    </div>
+    <button data-action="pague-t2" style="width:100%;background:#2ecc71;color:#000;border:none;border-radius:12px;padding:15px;font-weight:800;font-size:17px;cursor:pointer;margin-bottom:8px">✅ Ya transferí · Anotarme</button>
+    <button data-action="cerrar-t2" style="width:100%;background:transparent;color:#9fb3cc;border:1px solid rgba(255,255,255,0.2);border-radius:12px;padding:12px;font-size:14px;cursor:pointer">Ahora no</button>
+    <div style="margin-top:14px;font-size:11px;color:#7d8da3;text-align:center;line-height:1.5">Anotados hasta ahora:<br>${nombresAnotados}</div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+
+async function pagueT2(){
+  if(!S.jugador){ toast('Iniciá sesión primero','error'); return; }
+  if(!confirm(`¿Confirmás que transferiste $${T2_ENTRADA.toLocaleString('es-AR')} al alias ${T2_ALIAS} para entrar al Torneo 2?`)) return;
+  const jugadores = await fbGetJugadores();
+  const yo = jugadores.find(j=>j.id===S.jugador.id);
+  if(!yo){ toast('Error','error'); return; }
+  yo.pagoT2 = true;
+  await fbSetJugador(yo);
+  document.getElementById('modal-t2')?.remove();
+  toast('✅ Anotado en el Torneo 2 💪','success');
 }
 
 function cerrarSesion(){
