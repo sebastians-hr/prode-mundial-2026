@@ -382,8 +382,11 @@ document.addEventListener('click', async e=>{
       navigator.clipboard.writeText(T2_ALIAS).then(()=>toast('✅ Alias copiado','success')).catch(()=>toast('No se pudo copiar','error'));
       return;
     }
-    if(a==='pague-t2'){ pagueT2(); return; }
+    if(a==='pague-t2'){ pagueT2().then(()=>{ if(document.getElementById('modal-estado-t2')){ document.getElementById('modal-estado-t2').remove(); verEstadoT2(); } }); return; }
     if(a==='cerrar-t2'){ document.getElementById('modal-t2')?.remove(); return; }
+    if(a==='ver-torneo2'){ verEstadoT2(); return; }
+    if(a==='cerrar-estado-t2'){ document.getElementById('modal-estado-t2')?.remove(); return; }
+    if(a==='baja-t2'){ bajaT2(); return; }
     if(a==='toggle-pago-admin'){
       const jid=e.target.dataset.id;
       const j=await fbGetJugador(jid);
@@ -645,6 +648,60 @@ async function pagueT2(){
   await fbSetJugador(yo);
   document.getElementById('modal-t2')?.remove();
   toast('✅ Anotado en el Torneo 2 💪','success');
+}
+
+async function verEstadoT2(){
+  const jugadores = await fbGetJugadores();
+  const anotados = jugadores.filter(j=>j.pagoT2);
+  const pozo = anotados.length * T2_ENTRADA;
+  const yo = S.jugador ? jugadores.find(j=>j.id===S.jugador.id) : null;
+  const yoPago = yo && yo.pagoT2;
+  const listaAnotados = anotados.length
+    ? anotados.map(j=>`<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px;color:#dfe9f5">✅ ${esc(j.nombre)}${S.jugador&&j.id===S.jugador.id?' <span style="color:var(--celeste,#74acdf)">(vos)</span>':''}</div>`).join('')
+    : '<div style="color:#7d8da3;font-size:13px;padding:8px 0">Todavía no se anotó nadie</div>';
+
+  let accion;
+  if(!S.jugador){
+    accion='<div style="text-align:center;color:#9fb3cc;font-size:13px;padding:10px">Iniciá sesión para anotarte</div>';
+  } else if(yoPago){
+    accion=`<div style="background:rgba(46,204,113,0.12);color:#2ecc71;border-radius:10px;padding:12px;text-align:center;font-weight:700;margin-bottom:10px">✅ Estás anotado en el Torneo 2</div>
+      <button data-action="baja-t2" style="width:100%;background:transparent;color:#e74c3c;border:1px solid rgba(231,76,60,0.4);border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">Me equivoqué · sacar mi pago</button>`;
+  } else {
+    accion=`<button data-action="pague-t2" style="width:100%;background:#2ecc71;color:#000;border:none;border-radius:12px;padding:14px;font-weight:800;font-size:16px;cursor:pointer">✅ Ya transferí · Anotarme</button>`;
+  }
+
+  const ov=document.createElement('div');
+  ov.id='modal-estado-t2';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;overflow-y:auto;padding:20px 12px';
+  ov.innerHTML=`<div style="max-width:480px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid var(--dorado,#f5b800);border-radius:16px;padding:18px">
+    <h3 style="margin:0 0 4px;color:var(--dorado,#f5b800);font-family:var(--condensed);font-size:22px">🏆 TORNEO 2 · ELIMINATORIAS</h3>
+    <div style="font-size:12px;color:#9fb3cc;margin-bottom:14px">Desde 16avos · todos desde cero · puntos 3+3</div>
+    <div style="background:rgba(245,184,0,0.1);border-radius:12px;padding:14px;margin-bottom:14px;text-align:center">
+      <div style="font-size:13px;color:#9fb3cc">Pozo acumulado</div>
+      <div style="font-size:30px;font-weight:800;color:#fff">$${pozo.toLocaleString('es-AR')}</div>
+      <div style="font-size:13px;color:#9fb3cc;margin-top:4px">${anotados.length} anotados · entrada $${T2_ENTRADA.toLocaleString('es-AR')}</div>
+    </div>
+    ${accion}
+    <div style="margin-top:16px">
+      <div style="font-size:12px;letter-spacing:0.5px;color:var(--dorado,#f5b800);font-weight:700;margin-bottom:6px">ANOTADOS</div>
+      ${listaAnotados}
+    </div>
+    <button class="btn-grande btn-secundario" data-action="cerrar-estado-t2" style="margin-top:16px;width:100%">Cerrar</button>
+  </div>`;
+  ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
+
+async function bajaT2(){
+  if(!S.jugador){ toast('Iniciá sesión primero','error'); return; }
+  if(!confirm('¿Sacar tu pago del Torneo 2? Vas a quedar como NO anotado.')) return;
+  const jugadores = await fbGetJugadores();
+  const yo = jugadores.find(j=>j.id===S.jugador.id);
+  if(!yo){ toast('Error','error'); return; }
+  yo.pagoT2 = false;
+  await fbSetJugador(yo);
+  document.getElementById('modal-estado-t2')?.remove();
+  toast('Pago del Torneo 2 quitado','success');
 }
 
 function cerrarSesion(){
