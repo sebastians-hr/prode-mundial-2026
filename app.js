@@ -379,7 +379,18 @@ document.addEventListener('click', async e=>{
       return;
     }
     if(a==='copiar-alias-t2'){
-      navigator.clipboard.writeText(T2_ALIAS).then(()=>toast('✅ Alias copiado','success')).catch(()=>toast('No se pudo copiar','error'));
+      const btn = ac;
+      navigator.clipboard.writeText(T2_ALIAS).then(()=>{
+        toast('✅ Alias copiado','success');
+        if(btn){
+          const orig = btn.innerHTML;
+          const origBg = btn.style.background;
+          btn.innerHTML = '✅ Copiado';
+          btn.style.background = '#2ecc71';
+          btn.style.color = '#fff';
+          setTimeout(()=>{ btn.innerHTML = orig; btn.style.background = origBg; btn.style.color = '#000'; }, 1500);
+        }
+      }).catch(()=>toast('No se pudo copiar','error'));
       return;
     }
     if(a==='pague-t2'){ pagueT2().then(()=>{ if(document.getElementById('modal-estado-t2')){ document.getElementById('modal-estado-t2').remove(); verEstadoT2(); } }); return; }
