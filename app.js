@@ -395,7 +395,15 @@ document.addEventListener('click', async e=>{
     }
     if(a==='pague-t2'){ pagueT2().then(()=>{ if(document.getElementById('modal-estado-t2')){ document.getElementById('modal-estado-t2').remove(); verEstadoT2(); } }); return; }
     if(a==='cerrar-t2'){ document.getElementById('modal-t2')?.remove(); return; }
-    if(a==='ver-torneo2'){ verEstadoT2(); return; }
+    if(a==='ver-torneo2'){
+      (async()=>{
+        const js = await fbGetJugadores();
+        const yo = S.jugador ? js.find(x=>x.id===S.jugador.id) : null;
+        if(yo && yo.pagoT2){ abrirVistaT2(); } else { verEstadoT2(); }
+      })();
+      return;
+    }
+    if(a==='cerrar-vista-t2'){ cerrarVistaT2(); return; }
     if(a==='cerrar-estado-t2'){ document.getElementById('modal-estado-t2')?.remove(); return; }
     if(a==='baja-t2'){ bajaT2(); return; }
     if(a==='toggle-pago-admin'){
@@ -659,6 +667,39 @@ async function pagueT2(){
   await fbSetJugador(yo);
   document.getElementById('modal-t2')?.remove();
   toast('✅ Anotado en el Torneo 2 💪','success');
+}
+
+async function abrirVistaT2(){
+  const cont = document.getElementById('vista-t2');
+  if(!cont) return;
+  const jugadores = await fbGetJugadores();
+  const anotados = jugadores.filter(j=>j.pagoT2);
+  const pozo = anotados.length * T2_ENTRADA;
+  cont.innerHTML = `
+    <div style="max-width:640px;margin:0 auto;padding:16px 14px 60px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px">
+        <h1 style="margin:0;color:var(--dorado,#f5b800);font-family:var(--condensed);font-size:24px">🏆 TORNEO 2 · ELIMINATORIAS</h1>
+        <button data-action="cerrar-vista-t2" style="background:rgba(255,255,255,0.1);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer">← Volver</button>
+      </div>
+      <div style="background:rgba(245,184,0,0.1);border-radius:12px;padding:14px;margin-bottom:16px;text-align:center">
+        <div style="font-size:13px;color:#9fb3cc">Pozo del Torneo 2</div>
+        <div style="font-size:28px;font-weight:800;color:#fff">$${pozo.toLocaleString('es-AR')}</div>
+        <div style="font-size:13px;color:#9fb3cc;margin-top:4px">${anotados.length} anotados</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:24px 16px;text-align:center;color:#9fb3cc">
+        <div style="font-size:40px;margin-bottom:10px">⚙️</div>
+        <div style="font-size:16px;color:#dfe9f5;font-weight:700;margin-bottom:6px">Próximamente</div>
+        <div style="font-size:13px;line-height:1.5">Los cruces de 16avos se cargan cuando termine la fase de grupos.<br>Sistema: 3 puntos por acertar el resultado + 3 por el marcador exacto.<br>Se pronostica el resultado a los 120 minutos (si va a penales, cuenta empate).</div>
+      </div>
+    </div>`;
+  cont.style.display='block';
+  document.body.style.overflow='hidden';
+}
+
+function cerrarVistaT2(){
+  const cont=document.getElementById('vista-t2');
+  if(cont){ cont.style.display='none'; cont.innerHTML=''; }
+  document.body.style.overflow='';
 }
 
 async function verEstadoT2(){
