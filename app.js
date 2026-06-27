@@ -395,14 +395,8 @@ document.addEventListener('click', async e=>{
     }
     if(a==='pague-t2'){ pagueT2().then(()=>{ if(document.getElementById('modal-estado-t2')){ document.getElementById('modal-estado-t2').remove(); verEstadoT2(); } }); return; }
     if(a==='cerrar-t2'){ document.getElementById('modal-t2')?.remove(); return; }
-    if(a==='ver-torneo2'){
-      (async()=>{
-        const js = await fbGetJugadores();
-        const yo = S.jugador ? js.find(x=>x.id===S.jugador.id) : null;
-        if(yo && yo.pagoT2){ abrirVistaT2(); } else { verEstadoT2(); }
-      })();
-      return;
-    }
+    if(a==='ver-torneo2'){ verEstadoT2(); return; }
+    if(a==='entrar-prode-t2'){ window.open('torneo2.html','_blank'); return; }
     if(a==='cerrar-vista-t2'){ cerrarVistaT2(); return; }
     if(a==='cerrar-estado-t2'){ document.getElementById('modal-estado-t2')?.remove(); return; }
     if(a==='baja-t2'){ bajaT2(); return; }
@@ -717,6 +711,7 @@ async function verEstadoT2(){
     accion='<div style="text-align:center;color:#9fb3cc;font-size:13px;padding:10px">Iniciá sesión para anotarte</div>';
   } else if(yoPago){
     accion=`<div style="background:rgba(46,204,113,0.12);color:#2ecc71;border-radius:10px;padding:12px;text-align:center;font-weight:700;margin-bottom:10px">✅ Estás anotado en el Torneo 2</div>
+      <button data-action="entrar-prode-t2" style="width:100%;background:linear-gradient(135deg,#f5b800,#e09e00);color:#000;border:none;border-radius:12px;padding:15px;font-weight:800;font-size:16px;cursor:pointer;margin-bottom:10px;box-shadow:0 4px 16px rgba(245,184,0,0.3)">🏆 Entrar al Prode de Eliminatorias →</button>
       <button data-action="baja-t2" style="width:100%;background:transparent;color:#e74c3c;border:1px solid rgba(231,76,60,0.4);border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">Me equivoqué · sacar mi pago</button>`;
   } else {
     accion=`<button data-action="pague-t2" style="width:100%;background:#2ecc71;color:#000;border:none;border-radius:12px;padding:14px;font-weight:800;font-size:16px;cursor:pointer">✅ Ya transferí · Anotarme</button>`;
