@@ -1,4 +1,455 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Prode Eliminatorias · Torneo 2</title>
-<style>body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#0a1226;color:#dfe9f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center}.card{max-width:440px;background:#10182a;border:1px solid #f5b800;border-radius:18px;padding:32px 22px}h1{color:#f5b800;font-size:24px;margin:0 0 10px}p{color:#9fb3cc;line-height:1.5;font-size:15px}</style></head>
-<body><div class="card"><div style="font-size:46px;margin-bottom:10px">🏆⚙️</div><h1>PRODE ELIMINATORIAS</h1><p>El Torneo 2 está en construcción.<br>Los cruces de 16avos se cargan cuando termine la fase de grupos.<br><br>Sistema: 3 puntos por acertar el resultado + 3 por el marcador exacto.<br>Se pronostica el resultado a los 120 minutos (penales = empate).</p></div></body></html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Prode Eliminatorias · Torneo 2</title>
+<style>
+  :root{
+    --azul-d:#0a1226; --azul-m:#0f1a33; --card:#10182a; --borde:rgba(255,255,255,0.08);
+    --dorado:#f5b800; --dorado-d:#e09e00; --celeste:#74acdf; --celeste-l:#9fc4ec;
+    --muted:#9fb3cc; --texto:#dfe9f5; --verde:#2ecc71; --rojo:#e74c3c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--azul-d); color:var(--texto); min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:14px 12px 60px}
+
+  /* Loading */
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:var(--azul-d);z-index:50}
+  .spin{width:42px;height:42px;border:4px solid rgba(245,184,0,0.2);border-top-color:var(--dorado);border-radius:50%;animation:sp 0.8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* Header */
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  h1{margin:0;color:var(--dorado);font-size:22px;letter-spacing:0.5px}
+  .volver{background:rgba(255,255,255,0.08);color:var(--texto);border:none;border-radius:10px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer}
+
+  /* Login */
+  .box{background:var(--card);border:1px solid var(--borde);border-radius:16px;padding:24px 20px;margin-top:24px;text-align:center}
+  .box h2{color:var(--dorado);margin:0 0 6px;font-size:20px}
+  .box p{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 16px}
+  .ico{font-size:44px;margin-bottom:8px}
+  input,select{width:100%;background:var(--azul-m);border:1px solid var(--borde);color:var(--texto);border-radius:12px;padding:13px 14px;font-size:16px;margin-bottom:12px;outline:none}
+  input:focus,select:focus{border-color:var(--dorado)}
+  .pin{text-align:center;letter-spacing:8px;font-size:22px}
+  .btn{width:100%;border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:800;cursor:pointer}
+  .btn-prim{background:linear-gradient(135deg,var(--dorado),var(--dorado-d));color:#000;box-shadow:0 4px 16px rgba(245,184,0,0.25)}
+  .btn-sec{background:rgba(255,255,255,0.08);color:var(--texto);margin-top:8px}
+  .hr{border:none;border-top:1px solid var(--borde);margin:18px 0}
+  .help{color:var(--celeste-l);font-size:13px;margin:0 0 8px;text-align:left}
+
+  /* Reglas */
+  .reglas{background:rgba(116,172,223,0.08);border:1px solid rgba(116,172,223,0.2);border-radius:12px;padding:13px 14px;margin-bottom:16px;font-size:13px;line-height:1.5;color:var(--celeste-l)}
+  .reglas b{color:var(--dorado)}
+
+  /* Match card */
+  .match{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:14px;margin-bottom:12px}
+  .meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);margin-bottom:10px}
+  .meta .sede{text-align:right;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .equipos{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+  .team{flex:1;text-align:center;font-weight:700;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .team .fl{font-size:30px;line-height:1}
+  .vs{color:var(--muted);font-size:12px;font-weight:700}
+  .ops{display:flex;gap:8px;margin-bottom:10px}
+  .op{flex:1;background:var(--azul-m);border:1px solid var(--borde);color:var(--texto);border-radius:10px;padding:11px 0;font-weight:800;font-size:15px;cursor:pointer}
+  .op.sel{background:var(--dorado);color:#000;border-color:var(--dorado)}
+  .marcador{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px}
+  .marcador label{font-size:11px;color:var(--muted)}
+  .marcador input{width:58px;text-align:center;font-size:18px;font-weight:800;padding:8px;margin:0}
+  .marcador .gtxt{font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+  .nota{font-size:11px;color:var(--muted);line-height:1.4;margin-top:8px}
+  .cerrado{display:inline-block;background:rgba(231,76,60,0.15);color:#ff8b7e;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;margin-bottom:8px}
+  .match.lock{opacity:0.78}
+  .match.lock .op,.match.lock input{pointer-events:none;opacity:0.6}
+
+  /* Toast */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);background:#1a2540;color:#fff;border:1px solid var(--borde);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;z-index:100;opacity:0;transition:all 0.3s;max-width:90%;text-align:center}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast.success{border-color:var(--verde)}
+  .toast.error{border-color:var(--rojo)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spin"></div><div style="color:var(--muted)">Cargando…</div></div>
+
+<div class="wrap">
+  <header>
+    <h1>🏆 PRODE ELIMINATORIAS</h1>
+    <button class="volver" data-action="volver">← Volver al Torneo 1</button>
+  </header>
+
+  <!-- LOGIN -->
+  <div id="sec-login" class="hidden">
+    <div class="box">
+      <div class="ico">🔐</div>
+      <h2>Ingresá</h2>
+      <p>Entrá con tu nombre y PIN (el mismo del Torneo 1)</p>
+      <select id="select-jugador"><option value="">— Elegí tu nombre —</option></select>
+      <input type="tel" id="input-pin" class="pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="off">
+      <button class="btn btn-prim" data-action="login">Entrar</button>
+      <hr class="hr">
+      <p style="margin:0 0 10px">¿No estás en la lista?</p>
+      <button class="btn btn-sec" data-action="mostrar-registro">✍️ Crear perfil / Sumarme</button>
+    </div>
+    <div id="registro-panel" class="box hidden">
+      <div class="ico">✍️</div>
+      <h2>Crear perfil</h2>
+      <p>Completá tus datos para sumarte</p>
+      <input type="text" id="reg-nombre" placeholder="Tu nombre" autocomplete="off">
+      <input type="tel" id="reg-pin" class="pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="PIN ••••" autocomplete="off">
+      <p class="help" id="reg-pregunta"></p>
+      <input type="text" id="reg-respuesta" placeholder="Tu respuesta" autocomplete="off">
+      <button class="btn btn-prim" data-action="registrar-nuevo">Crear perfil</button>
+      <button class="btn btn-sec" data-action="cancelar-registro">← Volver</button>
+    </div>
+  </div>
+
+  <!-- NO PAGO -->
+  <div id="sec-nopago" class="hidden">
+    <div class="box">
+      <div class="ico">🚧</div>
+      <h2>Todavía no estás anotado en el Torneo 2</h2>
+      <p>Para participar del Prode de Eliminatorias primero tenés que anotarte desde el Torneo 1.</p>
+      <button class="btn btn-prim" data-action="volver">← Volver al Torneo 1</button>
+      <button class="btn btn-sec" data-action="logout">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- PARTIDOS -->
+  <div id="sec-app" class="hidden">
+    <div class="reglas">
+      📋 <b>Cómo se pronostica:</b> el resultado es el de los <b>120 minutos</b>. Si el partido se define por <b>penales, cuenta como EMPATE</b>. Si empatan en los 90' pero uno gana en el alargue, gana el del alargue.<br>
+      Elegí <b>1</b> (gana local) / <b>X</b> (empate) / <b>2</b> (gana visita) y, si querés, el marcador exacto.
+    </div>
+    <div id="lista-partidos"></div>
+    <p style="text-align:center;color:var(--muted);font-size:12px;margin-top:18px">Tus pronósticos se guardan solos ✓</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
+import {
+  getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs
+} from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js';
+
+// ============================================================
+// CONFIG (mismo proyecto que el Torneo 1)
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCq5_wwdc7lipXPqaH6_CYZSIUEFj81yBI",
+  authDomain: "prode-mundial-26.firebaseapp.com",
+  projectId: "prode-mundial-26",
+  storageBucket: "prode-mundial-26.firebasestorage.app",
+  messagingSenderId: "112140770068",
+  appId: "1:112140770068:web:7c364985a7a4f05b3b0001"
+};
+
+const PREGUNTA_SECRETA  = '¿A qué nombre corresponde el apodo Anibal?';
+const RESPUESTA_SECRETA = 'lucas';
+
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
+
+// ============================================================
+// FIXTURE TORNEO 2 · 16avos · horarios en hora argentina (UTC-3)
+// {id, local:{n,f}, visita:{n,f}, fecha:'dd/mm', hora:'HH:MM', sede}
+// ============================================================
+const X = {n:'Por definir', f:'❔'};
+const FX2 = [
+  {id:'t2_01', local:{n:'Sudáfrica',f:'🇿🇦'},      visita:{n:'Canadá',f:'🇨🇦'},       fecha:'28/06', hora:'16:00', sede:'SoFi Stadium, Los Ángeles'},
+  {id:'t2_02', local:{n:'Brasil',f:'🇧🇷'},          visita:{n:'Japón',f:'🇯🇵'},        fecha:'29/06', hora:'14:00', sede:'NRG Stadium, Houston'},
+  {id:'t2_03', local:{n:'Alemania',f:'🇩🇪'},        visita:{n:'3° por definir',f:'❔'}, fecha:'29/06', hora:'16:00', sede:'Gillette Stadium, Foxborough'},
+  {id:'t2_04', local:{n:'Países Bajos',f:'🇳🇱'},    visita:{n:'Marruecos',f:'🇲🇦'},     fecha:'29/06', hora:'21:00', sede:'Estadio BBVA, Monterrey'},
+  {id:'t2_05', local:{n:'Costa de Marfil',f:'🇨🇮'}, visita:{n:'Noruega',f:'🇳🇴'},       fecha:'30/06', hora:'14:00', sede:"AT&T Stadium, Arlington"},
+  {id:'t2_06', local:{n:'Francia',f:'🇫🇷'},         visita:{n:'3° por definir',f:'❔'}, fecha:'30/06', hora:'17:00', sede:'MetLife Stadium, East Rutherford'},
+  {id:'t2_07', local:{n:'México',f:'🇲🇽'},          visita:{n:'3° por definir',f:'❔'}, fecha:'30/06', hora:'21:00', sede:'Estadio Azteca, CDMX'},
+  {id:'t2_08', local:{n:'1° Grupo L',f:'❔'},        visita:{n:'3° por definir',f:'❔'}, fecha:'01/07', hora:'13:00', sede:'Mercedes-Benz Stadium, Atlanta'},
+  {id:'t2_09', local:{n:'Bélgica',f:'🇧🇪'},         visita:{n:'3° por definir',f:'❔'}, fecha:'01/07', hora:'16:00', sede:'Lumen Field, Seattle'},
+  {id:'t2_10', local:{n:'Estados Unidos',f:'🇺🇸'},  visita:{n:'Bosnia',f:'🇧🇦'},        fecha:'01/07', hora:'19:00', sede:"Levi's Stadium, Santa Clara"},
+  {id:'t2_11', local:{n:'España',f:'🇪🇸'},          visita:{n:'2° Grupo J',f:'❔'},     fecha:'02/07', hora:'17:00', sede:'SoFi Stadium, Los Ángeles'},
+  {id:'t2_12', local:{n:'2° Grupo K',f:'❔'},        visita:{n:'2° Grupo L',f:'❔'},     fecha:'02/07', hora:'19:00', sede:'BMO Field, Toronto'},
+  {id:'t2_13', local:{n:'Australia',f:'🇦🇺'},       visita:{n:'Egipto',f:'🇪🇬'},        fecha:'03/07', hora:'13:00', sede:"AT&T Stadium, Arlington"},
+  {id:'t2_14', local:{n:'Argentina',f:'🇦🇷'},       visita:{n:'Cabo Verde',f:'🇨🇻'},    fecha:'03/07', hora:'16:00', sede:'Hard Rock Stadium, Miami'},
+  {id:'t2_15', local:{n:'1° Grupo K',f:'❔'},        visita:{n:'3° por definir',f:'❔'}, fecha:'03/07', hora:'19:00', sede:'Arrowhead Stadium, Kansas City'},
+  {id:'t2_16', local:{n:'Suiza',f:'🇨🇭'},           visita:{n:'3° por definir',f:'❔'}, fecha:'03/07', hora:'21:00', sede:'BC Place, Vancouver'}
+];
+
+// ============================================================
+// ESTADO
+// ============================================================
+const S = { jugador:null, misPron:{} };
+let saveTimer = null;
+
+// ============================================================
+// HELPERS
+// ============================================================
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+function mkId(n){ return n.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20)||'j' }
+function toast(msg, tipo=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+tipo;
+  setTimeout(()=>{ t.className='toast'; }, 2400);
+}
+function show(id){ document.getElementById(id).classList.remove('hidden'); }
+function hide(id){ document.getElementById(id).classList.add('hidden'); }
+
+// Mismo criterio que el Torneo 1
+function parseFechaPartido(fecha, hora){
+  const [dia, mes] = fecha.split('/');
+  const [hh, mm]   = hora.split(':');
+  return new Date(`2026-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}T${hh}:${mm}:00-03:00`);
+}
+function esCerrado(p){
+  const inicio = parseFechaPartido(p.fecha, p.hora);
+  return Date.now() >= inicio.getTime() - 2 * 60 * 1000;
+}
+
+// ============================================================
+// FIREBASE helpers
+// ============================================================
+async function fbGetJugadores(){
+  const snap = await getDocs(collection(db,'jugadores'));
+  return snap.docs.map(d=>d.data());
+}
+async function fbGetJugador(id){
+  const s = await getDoc(doc(db,'jugadores',id));
+  return s.exists() ? s.data() : null;
+}
+async function fbSetJugador(j){ await setDoc(doc(db,'jugadores',j.id),j); }
+// Guarda en el campo NUEVO y separado pron2 (no toca pronosticos del Torneo 1)
+async function fbUpdatePron2(id, pron){
+  await updateDoc(doc(db,'jugadores',id),{pron2:pron, ts2:new Date().toISOString()});
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init(){
+  // Poblar select de login (mismos usuarios que el Torneo 1)
+  const jugadores = await fbGetJugadores();
+  jugadores.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const sel = document.getElementById('select-jugador');
+  sel.innerHTML = '<option value="">— Elegí tu nombre —</option>' +
+    jugadores.map(j=>`<option value="${j.id}">${esc(j.nombre)}${!j.pin?' · primera vez':''}</option>`).join('');
+
+  document.getElementById('reg-pregunta').textContent = PREGUNTA_SECRETA;
+
+  // Sesión guardada compartida con el Torneo 1 (clave 'ps')
+  try{
+    const g = JSON.parse(localStorage.getItem('ps')||'null');
+    if(g){
+      const j = jugadores.find(x=>x.id===g.id && x.pin===g.pin);
+      if(j){ await iniciarSesion(j); return; }
+    }
+  }catch(e){}
+
+  hide('loading');
+  show('sec-login');
+}
+
+// ============================================================
+// LOGIN / REGISTRO (mismo flujo que el Torneo 1)
+// ============================================================
+async function intentarLogin(){
+  const id  = document.getElementById('select-jugador').value;
+  const pin = document.getElementById('input-pin').value;
+  if(!id)                  { toast('Elegí tu nombre','error'); return; }
+  if(!/^\d{4}$/.test(pin)) { toast('PIN de 4 dígitos','error'); return; }
+  const j = await fbGetJugador(id);
+  if(!j){ toast('Jugador no encontrado','error'); return; }
+  if(!j.pin){
+    if(!confirm(`Usarás el PIN "${pin}" siempre.\n⚠️ Anotalo, no se puede recuperar.`)) return;
+    j.pin = pin;
+    await fbSetJugador(j);
+    toast('PIN guardado ✓','success');
+  } else if(j.pin!==pin){
+    toast('PIN incorrecto','error');
+    return;
+  }
+  await iniciarSesion(j);
+}
+
+async function iniciarSesion(j){
+  if(j.verificado !== true){
+    const resp = prompt(`🔐 Pregunta de verificación\n\n${PREGUNTA_SECRETA}`);
+    if(resp === null || resp.trim().toLowerCase() !== RESPUESTA_SECRETA){
+      localStorage.removeItem('ps');
+      hide('loading');
+      show('sec-login');
+      toast('Respuesta incorrecta','error');
+      return;
+    }
+    j.verificado = true;
+    await fbSetJugador(j);
+  }
+  S.jugador = j;
+  S.misPron = (j.pron2 && typeof j.pron2==='object') ? JSON.parse(JSON.stringify(j.pron2)) : {};
+  localStorage.setItem('ps', JSON.stringify({id:j.id, pin:j.pin}));
+
+  hide('loading');
+  hide('sec-login');
+
+  // Solo entran al Prode 2 los que pagaron
+  if(j.pagoT2 !== true){
+    show('sec-nopago');
+    return;
+  }
+
+  renderPartidos();
+  show('sec-app');
+  toast('Hola '+j.nombre.split(' ')[0]+'!','success');
+}
+
+async function registrarNuevo(){
+  const nombre = document.getElementById('reg-nombre')?.value?.trim();
+  const pin    = document.getElementById('reg-pin')?.value;
+  const resp   = document.getElementById('reg-respuesta')?.value;
+
+  if(!nombre)                                                 { toast('Ingresá tu nombre','error'); return; }
+  if(!/^\d{4}$/.test(pin))                                    { toast('PIN de 4 dígitos','error'); return; }
+  if(!resp || resp.trim().toLowerCase() !== RESPUESTA_SECRETA){ toast('Respuesta incorrecta','error'); return; }
+
+  const id  = mkId(nombre);
+  const btn = document.querySelector('[data-action="registrar-nuevo"]');
+  if(btn){ btn.disabled=true; btn.textContent='Creando perfil...'; }
+
+  try{
+    const existe = await fbGetJugador(id);
+    if(existe){
+      toast(`"${nombre}" ya existe · elegilo del dropdown para entrar con tu PIN`,'error');
+      if(btn){ btn.disabled=false; btn.textContent='Crear perfil'; }
+      return;
+    }
+    const j = {id, nombre, pin, pago:false, pronosticos:{}, verificado:true, fechaCreacion:new Date().toISOString()};
+    await setDoc(doc(db,'jugadores',id), j);
+    await iniciarSesion(j);
+  }catch(e){
+    toast('Error al crear perfil','error');
+    if(btn){ btn.disabled=false; btn.textContent='Crear perfil'; }
+  }
+}
+
+function logout(){
+  localStorage.removeItem('ps');
+  S.jugador=null; S.misPron={};
+  hide('sec-nopago'); hide('sec-app');
+  document.getElementById('input-pin').value='';
+  show('sec-login');
+}
+
+// ============================================================
+// VISTA DE PARTIDOS
+// ============================================================
+function renderPartidos(){
+  const cont = document.getElementById('lista-partidos');
+  cont.innerHTML = FX2.map(p=>{
+    const pr = S.misPron[p.id] || {op:null, gL:null, gV:null};
+    const cerrado = esCerrado(p);
+    const opBtn = (op,txt)=>`<button class="op${pr.op===op?' sel':''}" data-action="pron-op" data-id="${p.id}" data-op="${op}">${txt}</button>`;
+    return `
+    <div class="match${cerrado?' lock':''}" data-card="${p.id}">
+      <div class="meta">
+        <span>📅 ${esc(p.fecha)} · ${esc(p.hora)} hs</span>
+        <span class="sede">📍 ${esc(p.sede)}</span>
+      </div>
+      <div class="equipos">
+        <div class="team"><span class="fl">${p.local.f}</span>${esc(p.local.n)}</div>
+        <div class="vs">VS</div>
+        <div class="team"><span class="fl">${p.visita.f}</span>${esc(p.visita.n)}</div>
+      </div>
+      ${cerrado?'<div class="cerrado">🔒 Cerrado</div>':''}
+      <div class="ops">${opBtn('1','1')}${opBtn('X','X')}${opBtn('2','2')}</div>
+      <div class="marcador">
+        <div class="gtxt">Local
+          <input type="tel" inputmode="numeric" maxlength="2" data-id="${p.id}" data-side="gL" value="${pr.gL??''}" ${cerrado?'disabled':''}>
+        </div>
+        <span style="font-weight:800;color:var(--muted)">-</span>
+        <div class="gtxt">Visita
+          <input type="tel" inputmode="numeric" maxlength="2" data-id="${p.id}" data-side="gV" value="${pr.gV??''}" ${cerrado?'disabled':''}>
+        </div>
+      </div>
+      <div class="nota">El pronóstico es sobre el resultado a los <b>120'</b>. Penales = empate.</div>
+    </div>`;
+  }).join('');
+}
+
+function guardarPron2(){
+  if(!S.jugador) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await fbUpdatePron2(S.jugador.id, S.misPron);
+      toast('Guardado ✓','success');
+    }catch(e){
+      toast('Error al guardar','error');
+    }
+  }, 600);
+}
+
+// ============================================================
+// EVENT DELEGATION
+// ============================================================
+document.addEventListener('click', async e=>{
+  const ac = e.target.closest('[data-action]');
+  if(!ac) return;
+  const a = ac.dataset.action;
+
+  if(a==='volver'){ if(history.length>1){ history.back(); } else { window.close(); } return; }
+  if(a==='login'){ intentarLogin(); return; }
+  if(a==='logout'){ logout(); return; }
+  if(a==='mostrar-registro'){
+    document.querySelector('#sec-login .box:not(#registro-panel)')?.classList.add('hidden');
+    show('registro-panel');
+    return; }
+  if(a==='cancelar-registro'){
+    hide('registro-panel');
+    document.querySelector('#sec-login .box:not(#registro-panel)')?.classList.remove('hidden');
+    return; }
+  if(a==='registrar-nuevo'){ registrarNuevo(); return; }
+
+  if(a==='pron-op'){
+    const id = ac.dataset.id, op = ac.dataset.op;
+    const card = document.querySelector(`[data-card="${id}"]`);
+    if(!card || card.classList.contains('lock')) return;
+    const pr = S.misPron[id] || {op:null, gL:null, gV:null};
+    pr.op = (pr.op===op) ? null : op;   // toggle
+    S.misPron[id] = pr;
+    card.querySelectorAll('.op').forEach(b=>{
+      b.classList.toggle('sel', b.dataset.op===pr.op);
+    });
+    guardarPron2();
+    return;
+  }
+});
+
+document.addEventListener('input', e=>{
+  const inp = e.target.closest('input[data-side]');
+  if(!inp) return;
+  const id = inp.dataset.id, side = inp.dataset.side;
+  let v = inp.value.replace(/[^0-9]/g,'');
+  if(v.length>2) v=v.slice(0,2);
+  inp.value = v;
+  const pr = S.misPron[id] || {op:null, gL:null, gV:null};
+  pr[side] = v==='' ? null : parseInt(v,10);
+  S.misPron[id] = pr;
+  guardarPron2();
+});
+
+// PIN: avanzar / enter
+document.getElementById('input-pin').addEventListener('keydown', e=>{ if(e.key==='Enter') intentarLogin(); });
+document.getElementById('reg-pin').addEventListener('input', e=>{ if(e.target.value.length===4) document.getElementById('reg-respuesta')?.focus(); });
+document.getElementById('reg-respuesta').addEventListener('keydown', e=>{ if(e.key==='Enter') registrarNuevo(); });
+
+init();
+</script>
+</body>
+</html>
