@@ -439,13 +439,13 @@ function htmlPartido(p){
     </div>
     <div class="apuestas-3">
       <button class="${btnCls('1')}" data-apuesta data-id="${id}" data-op="1" ${dis}>
-        <span class="equipo-flag">${L.f}</span><span class="equipo-nombre">${L.n}</span>${!ph?`<span data-action="ver-historial" data-code="${lc}" style="font-size:11px;margin-left:4px;opacity:0.7">📊</span>`:''}
+        <span class="equipo-flag">${L.f}</span><span class="equipo-nombre">${L.n}</span>${!ph?`<span data-action="ver-historial" data-code="${lc}" style="display:inline-block;margin-top:4px;font-size:10px;color:var(--celeste,#74acdf);border:1px solid var(--celeste,#74acdf);border-radius:8px;padding:2px 7px;font-weight:700">📊 Resultados</span>`:''}
       </button>
       <button class="${btnCls('X')}" data-apuesta data-id="${id}" data-op="X" ${dis}>
         <span class="equipo-flag">🤝</span><span class="equipo-nombre">Empate</span>
       </button>
       <button class="${btnCls('2')}" data-apuesta data-id="${id}" data-op="2" ${dis}>
-        <span class="equipo-flag">${V.f}</span><span class="equipo-nombre">${V.n}</span>${!ph?`<span data-action="ver-historial" data-code="${vc}" style="font-size:11px;margin-left:4px;opacity:0.7">📊</span>`:''}
+        <span class="equipo-flag">${V.f}</span><span class="equipo-nombre">${V.n}</span>${!ph?`<span data-action="ver-historial" data-code="${vc}" style="display:inline-block;margin-top:4px;font-size:10px;color:var(--celeste,#74acdf);border:1px solid var(--celeste,#74acdf);border-radius:8px;padding:2px 7px;font-weight:700">📊 Resultados</span>`:''}
       </button>
     </div>
     ${scoreHtml}${reglaNota}${pago}
@@ -478,11 +478,17 @@ function htmlPartidoAjeno(p, jug){
   }
   const clase = real?.real ? (pron.op===real.real?'acertado':(pron.op?'fallado':'cerrado')) : (pron.op?'guardado':'cerrado');
 
+  const marcadorTxt = (pron.gL!==null&&pron.gV!==null) ? `${pron.gL} - ${pron.gV}` : ({'1':'Gana local','X':'Empate','2':'Gana visita'}[pron.op]||'');
   return `<div class="partido ${clase}">
-    <div class="partido-meta"><span class="grupo">${gt}</span> · ${fecha} ${hora}hs ${real?`<span class="resultado-real">${real.gL}-${real.gV}</span>`:''}</div>
+    <div class="partido-meta"><span class="grupo">${gt}</span> · ${fecha} ${hora}hs ${real?`<span class="resultado-real">Real: ${real.gL}-${real.gV}</span>`:''}</div>
     ${pron.op
-      ? `<div style="text-align:center;padding:10px;font-size:14px;font-weight:700;color:#dfe9f5">${estado} ${esc(lbl)}${pron.gL!==null&&pron.gV!==null?` · <b>${pron.gL}-${pron.gV}</b>`:''}</div>`
-      : `<div style="text-align:center;padding:10px;font-size:13px;color:#7d8da3;font-style:italic">sin pronóstico</div>`
+      ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;font-size:14px;color:#dfe9f5">
+          <span style="flex:1;text-align:right;font-weight:700">${L.f} ${esc(L.n)}</span>
+          <span style="font-weight:800;color:var(--dorado,#f5b800);white-space:nowrap">${marcadorTxt}</span>
+          <span style="flex:1;text-align:left;font-weight:700">${esc(V.n)} ${V.f}</span>
+          <span style="font-size:15px">${estado}</span>
+        </div>`
+      : `<div style="text-align:center;padding:10px;font-size:13px;color:#7d8da3;font-style:italic">${L.f} ${esc(L.n)} vs ${esc(V.n)} ${V.f} · sin pronóstico</div>`
     }
   </div>`;
 }
