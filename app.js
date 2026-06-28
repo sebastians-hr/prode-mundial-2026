@@ -921,7 +921,7 @@ document.addEventListener('click', async e=>{
 document.addEventListener('input', e=>{
   const sc=e.target.closest('[data-score-id]'); if(!sc) return;
   const id=sc.dataset.scoreId; const campo=sc.dataset.campo;
-  sc.value=sc.value.replace(/[^0-9]/g,'').slice(0,1);
+  sc.value=sc.value.replace(/[^0-9]/g,'').slice(-1);
   const val=sc.value===''?null:Math.max(0,Math.min(9,parseInt(sc.value)||0));
   if(!S.misPron[id]) S.misPron[id]={op:null,gL:null,gV:null};
   const cur=normPron(S.misPron[id]);
