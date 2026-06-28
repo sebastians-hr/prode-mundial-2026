@@ -418,9 +418,9 @@ function htmlPartido(p){
     <div class="score-exacto">
       <span class="score-lbl">Resultado exacto (opcional · +3 pts extra):</span>
       <div class="score-row">
-        <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" placeholder="?" class="score-in" data-score-id="${id}" data-campo="gL" value="${mia.gL!==null?mia.gL:''}">
+        <input type="text" inputmode="numeric" pattern="[0-9]" placeholder="?" class="score-in" data-score-id="${id}" data-campo="gL" value="${mia.gL!==null?mia.gL:''}">
         <span class="score-guion">-</span>
-        <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" placeholder="?" class="score-in" data-score-id="${id}" data-campo="gV" value="${mia.gV!==null?mia.gV:''}">
+        <input type="text" inputmode="numeric" pattern="[0-9]" placeholder="?" class="score-in" data-score-id="${id}" data-campo="gV" value="${mia.gV!==null?mia.gV:''}">
       </div>
     </div>` : ((mia.gL!==null&&mia.gV!==null) ? `
     <div class="score-exacto"><span class="score-lbl">Tu resultado exacto:</span>
@@ -915,6 +915,15 @@ document.addEventListener('click', async e=>{
       toast(`${j.nombre}: ${nuevo?'inscripto ✅':'removido'}`,nuevo?'success':'error');
       return;
     }
+  }
+});
+
+document.addEventListener('keydown', e=>{
+  const sc=e.target.closest('input[data-score-id]'); if(!sc) return;
+  if(/^[0-9]$/.test(e.key) && sc.value.length>=1){
+    e.preventDefault();
+    sc.value=e.key;
+    sc.dispatchEvent(new Event('input',{bubbles:true}));
   }
 });
 
