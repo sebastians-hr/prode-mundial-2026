@@ -418,9 +418,9 @@ function htmlPartido(p){
     <div class="score-exacto">
       <span class="score-lbl">Resultado exacto (opcional · +3 pts extra):</span>
       <div class="score-row">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="?" class="score-in" data-score-id="${id}" data-campo="gL" value="${mia.gL!==null?mia.gL:''}">
+        <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" placeholder="?" class="score-in" data-score-id="${id}" data-campo="gL" value="${mia.gL!==null?mia.gL:''}">
         <span class="score-guion">-</span>
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="?" class="score-in" data-score-id="${id}" data-campo="gV" value="${mia.gV!==null?mia.gV:''}">
+        <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" placeholder="?" class="score-in" data-score-id="${id}" data-campo="gV" value="${mia.gV!==null?mia.gV:''}">
       </div>
     </div>` : ((mia.gL!==null&&mia.gV!==null) ? `
     <div class="score-exacto"><span class="score-lbl">Tu resultado exacto:</span>
@@ -921,7 +921,8 @@ document.addEventListener('click', async e=>{
 document.addEventListener('input', e=>{
   const sc=e.target.closest('[data-score-id]'); if(!sc) return;
   const id=sc.dataset.scoreId; const campo=sc.dataset.campo;
-  const val=sc.value===''?null:Math.max(0,Math.min(20,parseInt(sc.value)||0));
+  sc.value=sc.value.replace(/[^0-9]/g,'').slice(0,1);
+  const val=sc.value===''?null:Math.max(0,Math.min(9,parseInt(sc.value)||0));
   if(!S.misPron[id]) S.misPron[id]={op:null,gL:null,gV:null};
   const cur=normPron(S.misPron[id]);
   cur[campo]=val;
