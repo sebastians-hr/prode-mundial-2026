@@ -399,12 +399,12 @@ function htmlPartidoAjeno(p, jug){
   const real = S.resultados[id];
   const pron = normPron((jug.pron2||{})[id]);
   const gt = ({r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis'})[fase]||(label==='FINAL'?'FINAL':'3er Puesto');
-  const faseVisible = (fase==='r32'||fase==='r16'); // desde cuartos los pronosticos ajenos quedan ocultos
-  const visible = (cerrado||!!real?.real) && faseVisible;
+  const faseProtegida = (fase==='sf' || fase==='final'); // semis en adelante: revelar al arranque
+  const visible = faseProtegida ? (cerrado||!!real?.real) : true;
 
   if(!visible) return `<div class="partido cerrado">
     <div class="partido-meta"><span class="grupo">${gt}</span> · ${fecha} ${hora}hs</div>
-    <div style="text-align:center;padding:12px;font-size:13px;color:var(--muted)">🔒 ${faseVisible?'Se revela al arranque':'Pronósticos ocultos en esta instancia'}</div>
+    <div style="text-align:center;padding:12px;font-size:13px;color:var(--muted)">🔒 Se revela al arranque del partido</div>
   </div>`;
 
   const lbl = pron.op ? ({'1':L.n,'X':'Empate','2':V.n}[pron.op]) : null;
@@ -497,8 +497,8 @@ function renderPartidos(){
 async function verTodosPronosticos(id){
   const p=FX.find(x=>x[0]===id); if(!p) return;
   const cerrado=esCerrado(p); const real=S.resultados[id];
-  const faseVisible=(p[5]==='r32'||p[5]==='r16'); // desde cuartos, pronosticos ocultos
-  const visible=(cerrado||!!real?.real) && faseVisible;
+  const faseProtegida=(p[5]==='sf' || p[5]==='final'); // semis en adelante: revelar al arranque
+  const visible=faseProtegida ? (cerrado||!!real?.real) : true;
   const L=EQ[p[3]]||{n:p[3],f:'❓'}; const V=EQ[p[4]]||{n:p[4],f:'❓'};
   const eq=`${L.n} - ${V.n}`;
   const ov=document.createElement('div');
@@ -506,7 +506,7 @@ async function verTodosPronosticos(id){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
   let cuerpo;
   if(!visible){
-    cuerpo=`<div style="text-align:center;padding:40px 10px;color:#9fb3cc">🔒 ${faseVisible?'Los pronósticos se revelan cuando arranque el partido':'En esta instancia los pronósticos quedan ocultos'}</div>`;
+    cuerpo=`<div style="text-align:center;padding:40px 10px;color:#9fb3cc">🔒 Los pronósticos se revelan cuando arranque el partido</div>`;
   } else {
     const jugadores=await fbGetJugadores();
     const filas=jugadores.map(j=>{
