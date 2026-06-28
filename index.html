@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Prode Chaquiense</title>
+<title>Prode Eliminatorias · Torneo 2</title>
 <meta name="description" content="Prode del Mundial 2026 - 16 amigos">
 
 <link rel="manifest" href="manifest.json">
@@ -313,7 +313,6 @@ a{color:var(--celeste);text-decoration:none}
     <div class="info" id="pozo-info">17 jugadores × $20.000 · El campeón se lleva todo</div>
     <div class="info" id="pozo-aviso" style="margin-top:6px;opacity:1">🏆 Este pozo se juega por la primera ronda (fase de grupos) · A partir de 16avos se crea un pozo nuevo</div>
   </div>
-  <button data-action="ver-torneo2" style="width:100%;background:linear-gradient(135deg,#f5b800,#e09e00);color:#000;border:none;border-radius:14px;padding:15px;font-weight:800;font-size:16px;cursor:pointer;margin-bottom:14px;box-shadow:0 4px 16px rgba(245,184,0,0.3)">🏆 TORNEO 2 · Anotate a las eliminatorias →</button>
   
   <div id="card-hoy"></div>
   <div id="pago-area"></div>
@@ -324,7 +323,7 @@ a{color:var(--celeste);text-decoration:none}
       <div class="lbl">Días al debut</div>
     </div>
     <div class="dato">
-      <div class="num" id="dato-fichas">104</div>
+      <div class="num" id="dato-fichas">3+3</div>
       <div class="lbl">Fichas iniciales</div>
     </div>
   </div>
@@ -336,13 +335,12 @@ a{color:var(--celeste);text-decoration:none}
   <div class="reglas-mini">
     <h3>Reglas en 30 segundos</h3>
     <ol>
-      <li>Cada jugador arranca con <strong>104 fichas</strong> (1 por partido).</li>
-      <li>En cada partido apostás <strong>1 ficha</strong> a Local, Empate o Visitante.</li>
-      <li>Si acertás el resultado, ganás fichas según la <strong>cuota</strong>.</li>
-      <li>Si además acertás el <strong>marcador exacto</strong>, se paga <strong>doble la ganancia</strong>.</li>
-      <li>Si fallás o no apostás, <strong>perdés la ficha</strong>.</li>
-      <li>Las apuestas cierran <strong>2 minutos antes</strong> de cada partido.</li>
-      <li>Al final de la <strong>fase de grupos</strong>, el que tenga más fichas se lleva los $<span id="pozo-regla">--</span>. A partir de <strong>16avos</strong> se crea un pozo nuevo.</li>
+      <li>Cada partido vale <strong>3 puntos</strong> si acertás el resultado (1/X/2).</li>
+      <li>Si además acertás el <strong>marcador exacto</strong>, sumás <strong>3 puntos extra</strong> (6 en total).</li>
+      <li>Si fallás o no pronosticás, no sumás ni restás puntos.</li>
+      <li>El pronóstico es sobre el resultado a los <strong>120 minutos</strong>. Si se define por penales, cuenta <strong>empate</strong>. Si hay gol en el alargue, gana ese equipo.</li>
+      <li>Los pronósticos cierran <strong>2 minutos antes</strong> de cada partido.</li>
+      <li>Gana el pozo quien sume más puntos al final de las eliminatorias.</li>
     </ol>
   </div>
   
@@ -356,7 +354,7 @@ a{color:var(--celeste);text-decoration:none}
   
   <div class="alert alert-warn">
     <span class="alert-icon">💡</span>
-    <div>Tocá un equipo o "X" para apostar tu ficha. La cuota muestra cuántas fichas ganás si acertás.</div>
+    <div>Tocá un equipo o "X" para pronosticar. Sumá el marcador exacto para ganar 3 puntos extra.</div>
   </div>
   
   <div class="filtros" id="filtros-fase">
@@ -387,28 +385,18 @@ a{color:var(--celeste);text-decoration:none}
   
   <div id="podio-container"></div>
   
-  <button class="btn-grande btn-secundario" data-action="sincronizar" style="margin-bottom:14px">
-    🔄 Actualizar resultados
-  </button>
-  
   <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:10px;font-family:var(--condensed);letter-spacing:0.5px">
     Última actualización: <strong id="ultima-sinc">cargando...</strong>
   </div>
   
-  <button class="btn-grande btn-secundario" data-action="ver-multiverso" style="margin-bottom:12px">🌀 Multiverso</button>
-  <button class="btn-grande btn-secundario" data-action="ver-diario" style="margin-bottom:12px">📰 Diario del FORO</button>
-  <button class="btn-grande btn-secundario" data-action="ver-evolucion" style="margin-bottom:12px">📈 Evolución de fichas</button>
   <button class="btn-grande btn-secundario" data-action="abrir-auditoria" style="margin-bottom:12px">🔍 Auditoría interna</button>
-  <button class="btn-grande btn-secundario" data-action="ver-ranking-puntos" style="margin-bottom:12px">🏅 Ranking tipo MP (no oficial)</button>
   <div id="lista-ranking"></div>
   
   <div class="admin-zona solo-admin" style="display:none">
     <h3>⚙️ Zona de admin</h3>
     <button class="btn-grande btn-primary" data-action="agregar-participante">➕ Agregar participante</button>
     <button class="btn-grande btn-secundario" data-action="eliminar-participante">🗑 Eliminar participante</button>
-    <button class="btn-grande btn-dorado" data-action="actualizar-cuotas">📊 Actualizar cuotas</button>
     <button class="btn-grande btn-secundario" data-action="resetear-pin">🔑 Resetear PIN de un jugador</button>
-    <button class="btn-grande btn-secundario" data-action="invertidos-walter">🔄 Cargar pronósticos de Walter (invertidos de Santi)</button>
     <button class="btn-grande btn-secundario" data-action="descargar-backup">💾 Descargar backup completo</button>
     <button class="btn-grande btn-secundario" data-action="cargar-resultado">⚽ Cargar resultado manual</button>
     <button class="btn-grande btn-secundario" data-action="editar-pron-admin">✏️ Editar pronóstico de un jugador</button>
