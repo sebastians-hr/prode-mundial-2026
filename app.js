@@ -51,20 +51,20 @@ const FX = [
   // 16AVOS
   ['T1' ,'28/06','16:00','RSA','CAN','r32','16avos'],
   ['T2' ,'29/06','14:00','BRA','JPN','r32','16avos'],
-  ['T3' ,'29/06','17:30','GER','?3D','r32','16avos'],
+  ['T3' ,'29/06','17:30','GER','PAR','r32','16avos'],
   ['T4' ,'29/06','22:00','NED','MAR','r32','16avos'],
   ['T5' ,'30/06','14:00','CIV','NOR','r32','16avos'],
-  ['T6' ,'30/06','18:00','FRA','?3C','r32','16avos'],
-  ['T7' ,'30/06','22:00','MEX','?3M','r32','16avos'],
-  ['T8' ,'01/07','13:00','?L1','?3J','r32','16avos'],
-  ['T9' ,'01/07','17:00','BEL','?3A','r32','16avos'],
+  ['T6' ,'30/06','18:00','FRA','SWE','r32','16avos'],
+  ['T7' ,'30/06','22:00','MEX','ECU','r32','16avos'],
+  ['T8' ,'01/07','13:00','ENG','COD','r32','16avos'],
+  ['T9' ,'01/07','17:00','BEL','SEN','r32','16avos'],
   ['T10','01/07','21:00','USA','BIH','r32','16avos'],
-  ['T11','02/07','16:00','ESP','?J2','r32','16avos'],
-  ['T12','02/07','20:00','?K2','?L2','r32','16avos'],
+  ['T11','02/07','16:00','ESP','AUT','r32','16avos'],
+  ['T12','02/07','20:00','POR','CRO','r32','16avos'],
   ['T13','03/07','15:00','AUS','EGY','r32','16avos'],
   ['T14','03/07','19:00','ARG','CPV','r32','16avos'],
-  ['T15','03/07','22:30','?K1','?3K','r32','16avos'],
-  ['T16','04/07','00:00','SUI','?3S','r32','16avos'],
+  ['T15','03/07','22:30','COL','GHA','r32','16avos'],
+  ['T16','03/07','00:00','SUI','ALG','r32','16avos'],
   // OCTAVOS
   ['T17','11/07','14:00','?OA','?OB','r16','Octavos'],
   ['T18','11/07','17:00','?OC','?OD','r16','Octavos'],
@@ -229,7 +229,7 @@ function renderInicio(){
   if(pagoArea&&S.jugador){
     const yo = S.ranking.find(r=>r.id===S.jugador.id);
     pagoArea.innerHTML = yo?.pagoT2
-      ? `<div class="card" style="text-align:center;margin-bottom:12px"><div style="color:var(--verde);font-family:var(--condensed);font-weight:700;font-size:16px;letter-spacing:0.5px">✅ Estás en el Torneo 2</div></div>`
+      ? `<div class="card" style="text-align:center;margin-bottom:12px"><div style="color:var(--verde);font-family:var(--condensed);font-weight:700;font-size:16px;letter-spacing:0.5px;margin-bottom:10px">✅ Estás en el Torneo 2</div><button data-action="revertir-pago-t2" style="width:100%;background:transparent;color:#e74c3c;border:1px solid rgba(231,76,60,0.4);border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer">Me equivoqué · sacar mi pago</button></div>`
       : `<div class="card" style="text-align:center;margin-bottom:12px;border:1px solid #e74c3c"><div style="color:#e74c3c;font-family:var(--condensed);font-weight:700;font-size:16px;margin-bottom:10px">⚠️ Aún no te anotaste</div><div style="font-size:13px;color:#9fb3cc;margin-bottom:10px">Transferí $${T2_ENTRADA.toLocaleString('es-AR')} al alias <b style="color:#fff">${T2_ALIAS}</b></div><button class="btn-grande btn-dorado" data-action="marcar-pago-t2">✅ Ya transferí · Anotarme</button></div>`;
   }
 }
@@ -352,11 +352,12 @@ function htmlPartidoAjeno(p, jug){
   const real = S.resultados[id];
   const pron = normPron((jug.pron2||{})[id]);
   const gt = ({r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis'})[fase]||(label==='FINAL'?'FINAL':'3er Puesto');
-  const visible = cerrado||!!real?.real;
+  const faseVisible = (fase==='r32'||fase==='r16'); // desde cuartos los pronosticos ajenos quedan ocultos
+  const visible = (cerrado||!!real?.real) && faseVisible;
 
   if(!visible) return `<div class="partido cerrado">
     <div class="partido-meta"><span class="grupo">${gt}</span> · ${fecha} ${hora}hs</div>
-    <div style="text-align:center;padding:12px;font-size:13px;color:var(--muted)">🔒 Se revela al arranque</div>
+    <div style="text-align:center;padding:12px;font-size:13px;color:var(--muted)">🔒 ${faseVisible?'Se revela al arranque':'Pronósticos ocultos en esta instancia'}</div>
   </div>`;
 
   const lbl = pron.op ? ({'1':L.n,'X':'Empate','2':V.n}[pron.op]) : null;
@@ -435,12 +436,22 @@ function renderPartidos(){
 
   cont.innerHTML=html;
   actualizarBotonGuardar();
+  // marcar visualmente los toggles activos
+  const bH=document.getElementById('btn-hoy');
+  const bP=document.getElementById('btn-pendientes');
+  if(bH){ bH.style.background=S.soloHoy?'var(--celeste,#74acdf)':'transparent'; bH.style.color=S.soloHoy?'#0a1226':'var(--celeste,#74acdf)'; }
+  if(bP){ bP.style.background=S.soloPendientes?'var(--celeste,#74acdf)':'transparent'; bP.style.color=S.soloPendientes?'#0a1226':'var(--celeste,#74acdf)'; }
+  // marcar filtro de fase activo
+  document.querySelectorAll('#filtros-fase .filtro').forEach(b=>{
+    b.classList.toggle('active', b.dataset.fase===S.faseFiltro);
+  });
 }
 
 async function verTodosPronosticos(id){
   const p=FX.find(x=>x[0]===id); if(!p) return;
   const cerrado=esCerrado(p); const real=S.resultados[id];
-  const visible=cerrado||!!real?.real;
+  const faseVisible=(p[5]==='r32'||p[5]==='r16'); // desde cuartos, pronosticos ocultos
+  const visible=(cerrado||!!real?.real) && faseVisible;
   const L=EQ[p[3]]||{n:p[3],f:'❓'}; const V=EQ[p[4]]||{n:p[4],f:'❓'};
   const eq=`${L.n} - ${V.n}`;
   const ov=document.createElement('div');
@@ -448,7 +459,7 @@ async function verTodosPronosticos(id){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
   let cuerpo;
   if(!visible){
-    cuerpo=`<div style="text-align:center;padding:40px 10px;color:#9fb3cc">🔒 Los pronósticos se revelan cuando arranque el partido</div>`;
+    cuerpo=`<div style="text-align:center;padding:40px 10px;color:#9fb3cc">🔒 ${faseVisible?'Los pronósticos se revelan cuando arranque el partido':'En esta instancia los pronósticos quedan ocultos'}</div>`;
   } else {
     const jugadores=await fbGetJugadores();
     const filas=jugadores.map(j=>{
@@ -603,6 +614,18 @@ async function marcarPagoT2(){
   toast('✅ Anotado en el Torneo 2 💪','success');
 }
 
+async function revertirPagoT2(){
+  if(!S.jugador){ toast('Iniciá sesión primero','error'); return; }
+  if(!confirm('¿Sacar tu inscripción al Torneo 2? Vas a quedar como NO anotado (DEBE).')) return;
+  const yo=await fbGetJugador(S.jugador.id); if(!yo){ toast('Error','error'); return; }
+  yo.pagoT2=false;
+  await fbSetJugador(yo);
+  S.jugador.pagoT2=false;
+  await recalcRanking();
+  renderInicio();
+  toast('Inscripción quitada','error');
+}
+
 function toggleAdmin(){
   if(S.isAdmin){
     if(!confirm('¿Salir del modo admin?')) return;
@@ -697,12 +720,14 @@ function irA(tab){
 
 document.addEventListener('click', async e=>{
   const nav=e.target.closest('[data-nav]');
+  const fase=e.target.closest('[data-fase]');
   const ac=e.target.closest('[data-action]');
   const ap=e.target.closest('[data-apuesta]');
   const admin=e.target.closest('#btn-admin');
   const hero=e.target.closest('#hero-header');
 
   if(nav){ e.stopPropagation(); irA(nav.dataset.nav); return; }
+  if(fase){ e.stopPropagation(); S.faseFiltro=fase.dataset.fase; renderPartidos(); return; }
   if(hero&&!admin){ irA('inicio'); return; }
   if(admin){ e.stopPropagation(); toggleAdmin(); return; }
 
@@ -722,6 +747,7 @@ document.addEventListener('click', async e=>{
     const a=ac.dataset.action;
     if(a==='guardar')              { guardarSeleccion(); return; }
     if(a==='marcar-pago-t2')       { marcarPagoT2(); return; }
+    if(a==='revertir-pago-t2')     { revertirPagoT2(); return; }
     if(a==='cerrar-sesion')        { if(!confirm('¿Salir?')) return; localStorage.removeItem('ps'); location.reload(); return; }
     if(a==='login')                { intentarLogin(); return; }
     if(a==='agregar-participante') { agregarParticipante(); return; }

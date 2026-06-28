@@ -296,7 +296,7 @@ a{color:var(--celeste);text-decoration:none}
       <option value="">— Elegí tu nombre —</option>
     </select>
     <input type="tel" class="pin-input" id="input-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••" autocomplete="off">
-    <button class="btn-grande btn-primary" id="btn-login">Entrar</button>
+    <button class="btn-grande btn-primary" id="btn-login" data-action="login">Entrar</button>
     <div class="login-help">
       <p style="margin-bottom:6px">¿Primera vez? Elegí tu nombre y un PIN de 4 dígitos.</p>
       <p>Anotalo: vas a necesitarlo cada vez que abras la app.</p>
@@ -310,7 +310,7 @@ a{color:var(--celeste);text-decoration:none}
   <div class="pozo-banner">
     <div class="lbl">Pozo Total</div>
     <div class="monto" id="pozo-monto">—</div>
-    <div class="info" id="pozo-info">17 jugadores × $20.000 · El campeón se lleva todo</div>
+    <div class="info" id="pozo-info">El campeón se lleva todo</div>
     <div class="info" id="pozo-aviso" style="margin-top:6px;opacity:1">🏆 Este pozo se juega por la primera ronda (fase de grupos) · A partir de 16avos se crea un pozo nuevo</div>
   </div>
   
@@ -339,7 +339,6 @@ a{color:var(--celeste);text-decoration:none}
       <li>Si además acertás el <strong>marcador exacto</strong>, sumás <strong>3 puntos extra</strong> (6 en total).</li>
       <li>Si fallás o no pronosticás, no sumás ni restás puntos.</li>
       <li>El pronóstico es sobre el resultado a los <strong>120 minutos</strong>. Si se define por penales, cuenta <strong>empate</strong>. Si hay gol en el alargue, gana ese equipo.</li>
-      <li>Los pronósticos cierran <strong>2 minutos antes</strong> de cada partido.</li>
       <li>Gana el pozo quien sume más puntos al final de las eliminatorias.</li>
     </ol>
   </div>
@@ -359,8 +358,7 @@ a{color:var(--celeste);text-decoration:none}
   
   <div class="filtros" id="filtros-fase">
     <button class="filtro active" data-fase="todos">Todos</button>
-    <button class="filtro" data-fase="grupos">Fase Grupos</button>
-    <button class="filtro" data-fase="r32">R32</button>
+    <button class="filtro" data-fase="r32">16avos</button>
     <button class="filtro" data-fase="r16">Octavos</button>
     <button class="filtro" data-fase="qf">Cuartos</button>
     <button class="filtro" data-fase="sf">Semis</button>
@@ -389,7 +387,7 @@ a{color:var(--celeste);text-decoration:none}
     Última actualización: <strong id="ultima-sinc">cargando...</strong>
   </div>
   
-  <button class="btn-grande btn-secundario" data-action="abrir-auditoria" style="margin-bottom:12px">🔍 Auditoría interna</button>
+  <button class="btn-grande btn-secundario" data-action="abrir-auditoria" style="margin-bottom:12px;display:none">🔍 Auditoría interna</button>
   <div id="lista-ranking"></div>
   
   <div class="admin-zona solo-admin" style="display:none">
