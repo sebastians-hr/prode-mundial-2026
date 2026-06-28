@@ -698,8 +698,16 @@ async function editarPronosticoAdmin(){
   const nJ=parseInt(selJ);
   if(!nJ||nJ<1||nJ>jgs.length){ if(selJ!==null) toast('Número inválido','error'); return; }
   const jug=jgs[nJ-1];
-  const idP=(prompt(`Jugador: ${jug.nombre}\nID del partido (ej: T1):`)||'').trim().toUpperCase();
-  const p=FX.find(x=>x[0]===idP); if(!p){ toast('Partido inexistente','error'); return; }
+  const listaP=FX.map((x,i)=>{
+    const eqx=`${EQ[x[3]]?.n||x[3].replace('?','…')} - ${EQ[x[4]]?.n||x[4].replace('?','…')}`;
+    const fa=({r32:'16avos',r16:'Octavos',qf:'Cuartos',sf:'Semis'})[x[5]]||x[6];
+    return `${i+1}. ${eqx} (${fa} · ${x[1]})`;
+  }).join('\n');
+  const selP=prompt(`Jugador: ${jug.nombre}\n\n¿Qué partido? Escribí el número:\n\n${listaP}`);
+  const nP=parseInt(selP);
+  if(!nP||nP<1||nP>FX.length){ if(selP!==null) toast('Número inválido','error'); return; }
+  const p=FX[nP-1];
+  const idP=p[0];
   const eq=`${EQ[p[3]]?.n||p[3]} - ${EQ[p[4]]?.n||p[4]}`;
   const actual=(jug.pron2||{})[idP];
   const marc=prompt(`${jug.nombre} · ${eq}\nActual: ${actual?JSON.stringify(actual):'NINGUNO'}\n\nIngresá golesLocal-golesVisita (ej: 2-1)`);
