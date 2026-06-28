@@ -202,6 +202,68 @@ async function sincronizar(silencioso=false){
   }
 }
 
+// Historial de un país en el Mundial (desde openfootball: grupos + eliminatorias)
+let _histCache = null;
+async function getHistorialFeed(){
+  if(_histCache) return _histCache;
+  const res = await fetch(SYNC_URL,{cache:'no-store'});
+  if(!res.ok) throw new Error(res.status);
+  _histCache = await res.json();
+  return _histCache;
+}
+
+async function verHistorialPais(code){
+  const EQinfo = EQ[code];
+  if(!EQinfo){ toast('Equipo no disponible','error'); return; }
+  const nombre = EQinfo.n;
+  const ov=document.createElement('div');
+  ov.id='modal-historial';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:20px 12px';
+  ov.innerHTML=`<div style="max-width:560px;margin:0 auto;background:var(--bg2,#10182a);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px">
+    <h3 style="margin:0 0 4px;color:var(--dorado,#f5b800);font-family:var(--condensed)">${EQinfo.f} ${esc(nombre)} · EN EL MUNDIAL</h3>
+    <div id="hist-cuerpo" style="font-size:13px;color:#9fb3cc;margin-top:10px">Cargando partidos...</div>
+    <button class="btn-grande btn-secundario" data-action="cerrar-historial" style="margin-top:14px;width:100%">Cerrar</button>
+  </div>`;
+  ov.addEventListener('click',ev=>{ if(ev.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+
+  try{
+    const data = await getHistorialFeed();
+    const ms = (data.matches||[]).filter(m=>{
+      const c1=N2C[m.team1], c2=N2C[m.team2];
+      return (c1===code||c2===code) && m.score?.ft;
+    });
+    const cuerpo = document.getElementById('hist-cuerpo');
+    if(!cuerpo) return;
+    if(!ms.length){ cuerpo.innerHTML='<div style="padding:14px 0;text-align:center">Todavía no hay partidos jugados de este equipo en el torneo.</div>'; return; }
+    cuerpo.innerHTML = ms.map(m=>{
+      const c1=N2C[m.team1], c2=N2C[m.team2];
+      const esLocal = c1===code;
+      const rival = esLocal ? c2 : c1;
+      const rivalInfo = EQ[rival]||{n:(esLocal?m.team2:m.team1),f:'🌍'};
+      const gf = esLocal ? m.score.ft[0] : m.score.ft[1];
+      const gc = esLocal ? m.score.ft[1] : m.score.ft[0];
+      const res = gf>gc?'G':(gf<gc?'P':'E');
+      const color = res==='G'?'#2ecc71':(res==='P'?'#e74c3c':'#9fb3cc');
+      const etiqueta = m.group ? esc(m.group) : (m.round?esc(m.round):'');
+      const fechaTxt = m.date ? m.date.split('-').reverse().slice(0,2).join('/') : '';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:${color};font-weight:800;width:16px">${res}</span>
+          <span style="color:#dfe9f5">vs ${rivalInfo.f} ${esc(rivalInfo.n)}</span>
+        </div>
+        <div style="text-align:right">
+          <div style="color:#fff;font-weight:700">${gf}-${gc}</div>
+          <div style="font-size:10px;color:#7d8da3">${etiqueta}${fechaTxt?' · '+fechaTxt:''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    const cuerpo=document.getElementById('hist-cuerpo');
+    if(cuerpo) cuerpo.innerHTML='<div style="padding:14px 0;text-align:center;color:#e74c3c">No se pudo cargar el historial (openfootball no disponible).</div>';
+  }
+}
+
 // CALCULO 3+3 — sin cuotas
 // Regla: resultado a los 120 min. Penales = empate. Alargue ganado = ese equipo gana.
 function calcPuntos(j){
@@ -377,13 +439,13 @@ function htmlPartido(p){
     </div>
     <div class="apuestas-3">
       <button class="${btnCls('1')}" data-apuesta data-id="${id}" data-op="1" ${dis}>
-        <span class="equipo-flag">${L.f}</span><span class="equipo-nombre">${L.n}</span>
+        <span class="equipo-flag">${L.f}</span><span class="equipo-nombre">${L.n}</span>${!ph?`<span data-action="ver-historial" data-code="${lc}" style="font-size:11px;margin-left:4px;opacity:0.7">📊</span>`:''}
       </button>
       <button class="${btnCls('X')}" data-apuesta data-id="${id}" data-op="X" ${dis}>
         <span class="equipo-flag">🤝</span><span class="equipo-nombre">Empate</span>
       </button>
       <button class="${btnCls('2')}" data-apuesta data-id="${id}" data-op="2" ${dis}>
-        <span class="equipo-flag">${V.f}</span><span class="equipo-nombre">${V.n}</span>
+        <span class="equipo-flag">${V.f}</span><span class="equipo-nombre">${V.n}</span>${!ph?`<span data-action="ver-historial" data-code="${vc}" style="font-size:11px;margin-left:4px;opacity:0.7">📊</span>`:''}
       </button>
     </div>
     ${scoreHtml}${reglaNota}${pago}
@@ -778,6 +840,9 @@ document.addEventListener('click', async e=>{
   if(hero&&!admin){ irA('inicio'); return; }
   if(admin){ e.stopPropagation(); toggleAdmin(); return; }
 
+  const histBtn=e.target.closest('[data-action="ver-historial"]');
+  if(histBtn){ e.stopPropagation(); e.preventDefault(); verHistorialPais(histBtn.dataset.code); return; }
+
   if(ap){
     const {id,op}=ap.dataset; if(!id||!op) return;
     const cur=normPron(S.misPron[id]);
@@ -827,6 +892,7 @@ document.addEventListener('click', async e=>{
     if(a==='ir-hoy')           { S.soloHoy=true; S.soloPendientes=false; irA('mi-prode'); return; }
     if(a==='ver-todos-pron')   { verTodosPronosticos(ac.dataset.id); return; }
     if(a==='cerrar-todospron') { document.getElementById('modal-todospron')?.remove(); return; }
+    if(a==='cerrar-historial') { document.getElementById('modal-historial')?.remove(); return; }
     if(a==='toggle-pago-admin'){
       const jid=ac.dataset.id; const j=await fbGetJugador(jid); if(!j) return;
       const nuevo=!j.pagoT2;
