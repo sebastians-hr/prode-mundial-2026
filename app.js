@@ -155,6 +155,53 @@ async function fbSetResultados(r){
   await setDoc(doc(db,'resultados','t2'),{resultados:r, ts:new Date().toISOString()});
 }
 
+const SYNC_URL = 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
+const N2C = {
+  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Czech Republic':'CZE','Czechia':'CZE',
+  'Canada':'CAN','Switzerland':'SUI','Qatar':'QAT','Bosnia and Herzegovina':'BIH','Bosnia & Herzegovina':'BIH',
+  'Brazil':'BRA','Morocco':'MAR','Haiti':'HAI','Scotland':'SCO',
+  'USA':'USA','United States':'USA','Paraguay':'PAR','Australia':'AUS','Türkiye':'TUR','Turkey':'TUR',
+  'Germany':'GER','Curaçao':'CUW','Curacao':'CUW','Ivory Coast':'CIV',"Côte d'Ivoire":'CIV','Ecuador':'ECU',
+  'Netherlands':'NED','Japan':'JPN','Tunisia':'TUN','Sweden':'SWE',
+  'Belgium':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL',
+  'Spain':'ESP','Cape Verde':'CPV','Cabo Verde':'CPV','Saudi Arabia':'KSA','Uruguay':'URU',
+  'France':'FRA','Senegal':'SEN','Iraq':'IRQ','Norway':'NOR',
+  'Argentina':'ARG','Algeria':'ALG','Austria':'AUT','Jordan':'JOR',
+  'Portugal':'POR','DR Congo':'COD','Uzbekistan':'UZB','Colombia':'COL',
+  'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN'
+};
+
+async function sincronizar(silencioso=false){
+  if(!silencioso) toast('🔄 Sincronizando con openfootball...');
+  try{
+    const res = await fetch(SYNC_URL,{cache:'no-store'});
+    if(!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    let n=0;
+    (data.matches||[]).forEach(m=>{
+      if(!m.score?.ft) return;
+      const c1=N2C[m.team1], c2=N2C[m.team2];
+      if(!c1||!c2) return;
+      const p=FX.find(x=>(x[3]===c1&&x[4]===c2)||(x[3]===c2&&x[4]===c1));
+      if(!p) return;
+      const lp=p[3]===c1;
+      const gL=lp?m.score.ft[0]:m.score.ft[1];
+      const gV=lp?m.score.ft[1]:m.score.ft[0];
+      const real=gL>gV?'1':(gL<gV?'2':'X');
+      const prev=S.resultados[p[0]];
+      if(prev?.manual && prev.real===real) return;
+      if(!prev || prev.real!==real || prev.gL!==gL || prev.gV!==gV){
+        S.resultados[p[0]]={real,gL,gV};
+        n++;
+      }
+    });
+    if(n>0){ await fbSetResultados(S.resultados); await recalcRanking(); renderPartidos(); }
+    if(!silencioso) toast(n>0?`✓ ${n} resultados actualizados`:'✓ Todo al día','success');
+  }catch(e){
+    if(!silencioso) toast('Error al sincronizar (openfootball puede no haber cargado aún)','error');
+  }
+}
+
 // CALCULO 3+3 — sin cuotas
 // Regla: resultado a los 120 min. Penales = empate. Alargue ganado = ese equipo gana.
 function calcPuntos(j){
@@ -567,7 +614,7 @@ function cargarResPartido(id){
   const gL=parseInt(m[1]), gV=parseInt(m[2]);
   const real=gL>gV?'1':(gL<gV?'2':'X');
   if(!confirm(`Confirmar: ${eq} terminó ${gL}-${gV}?\nEsto liquida los puntos de todos.`)) return;
-  S.resultados[id]={real,gL,gV};
+  S.resultados[id]={real,gL,gV,manual:true};
   fbSetResultados(S.resultados).then(()=>recalcRanking()).then(()=>{
     renderPartidos();
     toast(`✓ ${eq}: ${gL}-${gV} cargado`,'success');
@@ -753,6 +800,7 @@ document.addEventListener('click', async e=>{
     if(a==='agregar-participante') { agregarParticipante(); return; }
     if(a==='eliminar-participante'){ eliminarParticipante(); return; }
     if(a==='resetear-pin')         { resetearPin(); return; }
+    if(a==='sincronizar')          { sincronizar(); return; }
     if(a==='cargar-resultado')     { cargarResultadoManual(); return; }
     if(a==='cargar-res-partido')   { cargarResPartido(ac.dataset.id); return; }
     if(a==='cerrar-cargares')      { document.getElementById('modal-cargares')?.remove(); return; }
