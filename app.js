@@ -189,7 +189,7 @@ async function sincronizar(silencioso=false){
       const gV=lp?m.score.ft[1]:m.score.ft[0];
       const real=gL>gV?'1':(gL<gV?'2':'X');
       const prev=S.resultados[p[0]];
-      if(prev?.manual && prev.real===real) return;
+      if(prev?.manual) return; // la carga manual siempre tiene prioridad sobre openfootball
       if(!prev || prev.real!==real || prev.gL!==gL || prev.gV!==gV){
         S.resultados[p[0]]={real,gL,gV};
         n++;
