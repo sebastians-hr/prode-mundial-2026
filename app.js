@@ -184,9 +184,10 @@ async function sincronizar(silencioso=false){
       if(!c1||!c2) return;
       const p=FX.find(x=>(x[3]===c1&&x[4]===c2)||(x[3]===c2&&x[4]===c1));
       if(!p) return;
+      const marcador = m.score.et || m.score.ft; // regla del torneo: resultado a los 120 min si hubo alargue
       const lp=p[3]===c1;
-      const gL=lp?m.score.ft[0]:m.score.ft[1];
-      const gV=lp?m.score.ft[1]:m.score.ft[0];
+      const gL=lp?marcador[0]:marcador[1];
+      const gV=lp?marcador[1]:marcador[0];
       const real=gL>gV?'1':(gL<gV?'2':'X');
       const prev=S.resultados[p[0]];
       if(prev?.manual) return; // la carga manual siempre tiene prioridad sobre openfootball
