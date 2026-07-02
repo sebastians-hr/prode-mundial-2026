@@ -171,8 +171,8 @@ const N2C = {
   'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN'
 };
 
-async function sincronizar(silencioso=false){
-  if(!S.isAdmin){ toast('Solo admin','error'); return; }
+async function sincronizar(silencioso=false, auto=false){
+  if(!auto && !S.isAdmin){ toast('Solo admin','error'); return; }
   if(!silencioso) toast('🔄 Sincronizando con openfootball...');
   try{
     const res = await fetch(SYNC_URL,{cache:'no-store'});
@@ -993,6 +993,19 @@ async function iniciarSesion(j){
   document.getElementById('bottom-nav').style.display='grid';
   irA('inicio');
   toast('Hola '+j.nombre.split(' ')[0]+'!','success');
+  iniciarAutoSync();
+}
+
+// Sincronización automática: al abrir y cada 10 min, solo si hay partidos terminados sin resultado cargado
+let _autoSyncTimer=null;
+function hayPendientesDeResultado(){
+  return FX.some(p=>esCerrado(p) && !S.resultados[p[0]]?.real && !p[3].startsWith('?') && !p[4].startsWith('?'));
+}
+function iniciarAutoSync(){
+  if(_autoSyncTimer) clearInterval(_autoSyncTimer);
+  const tick=()=>{ if(hayPendientesDeResultado()) sincronizar(true, true); };
+  setTimeout(tick, 4000);
+  _autoSyncTimer=setInterval(tick, 10*60*1000);
 }
 
 async function registrarNuevo(){
