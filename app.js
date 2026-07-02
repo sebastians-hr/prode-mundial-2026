@@ -154,6 +154,15 @@ async function fbGetResultados(){
 async function fbSetResultados(r){
   await setDoc(doc(db,'resultados','t2'),{resultados:r, ts:new Date().toISOString()});
 }
+async function fbGetManuales(){
+  const s = await getDoc(doc(db,'resultados','manuales'));
+  return s.exists() ? (s.data().resultados||{}) : {};
+}
+async function fbSetManual(id, r){
+  const m = await fbGetManuales();
+  m[id]=r;
+  await setDoc(doc(db,'resultados','manuales'),{resultados:m, ts:new Date().toISOString()});
+}
 
 const SYNC_URL = 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
 const N2C = {
@@ -179,7 +188,15 @@ async function sincronizar(silencioso=false, auto=false){
     if(!res.ok) throw new Error(res.status);
     const data = await res.json();
     S.resultados = await fbGetResultados(); // leer fresco: respeta cargas manuales recientes de otros dispositivos
+    const manuales = await fbGetManuales(); // espejo: se reimpone si un dispositivo viejo pisó algo
     let n=0;
+    Object.keys(manuales).forEach(id=>{
+      const m=manuales[id], prev=S.resultados[id];
+      if(!prev || prev.real!==m.real || prev.gL!==m.gL || prev.gV!==m.gV || !prev.manual){
+        S.resultados[id]={...m, manual:true};
+        n++;
+      }
+    });
     (data.matches||[]).forEach(m=>{
       if(!m.score?.ft) return;
       const c1=N2C[m.team1], c2=N2C[m.team2];
@@ -689,7 +706,7 @@ function cargarResPartido(id){
     frescos[id]={real,gL,gV,manual:true};
     S.resultados=frescos;
     return fbSetResultados(frescos);
-  }).then(()=>recalcRanking()).then(()=>{
+  }).then(()=>fbSetManual(id,{real,gL,gV,manual:true})).then(()=>recalcRanking()).then(()=>{
     renderPartidos();
     toast(`✓ ${eq}: ${gL}-${gV} cargado`,'success');
     document.getElementById('modal-cargares')?.remove();
@@ -1076,3 +1093,15 @@ async function init(){
 }
 
 init();
+
+// Registro del service worker + recarga automática al detectar versión nueva
+if('serviceWorker' in navigator){
+  const teniaSW = !!navigator.serviceWorker.controller;
+  let _recargado=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(!teniaSW || _recargado) return;
+    _recargado=true;
+    location.reload();
+  });
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
