@@ -172,11 +172,13 @@ const N2C = {
 };
 
 async function sincronizar(silencioso=false){
+  if(!S.isAdmin){ toast('Solo admin','error'); return; }
   if(!silencioso) toast('🔄 Sincronizando con openfootball...');
   try{
     const res = await fetch(SYNC_URL,{cache:'no-store'});
     if(!res.ok) throw new Error(res.status);
     const data = await res.json();
+    S.resultados = await fbGetResultados(); // leer fresco: respeta cargas manuales recientes de otros dispositivos
     let n=0;
     (data.matches||[]).forEach(m=>{
       if(!m.score?.ft) return;
@@ -683,8 +685,11 @@ function cargarResPartido(id){
   const gL=parseInt(m[1]), gV=parseInt(m[2]);
   const real=gL>gV?'1':(gL<gV?'2':'X');
   if(!confirm(`Confirmar: ${eq} terminó ${gL}-${gV}?\nEsto liquida los puntos de todos.`)) return;
-  S.resultados[id]={real,gL,gV,manual:true};
-  fbSetResultados(S.resultados).then(()=>recalcRanking()).then(()=>{
+  fbGetResultados().then(frescos=>{
+    frescos[id]={real,gL,gV,manual:true};
+    S.resultados=frescos;
+    return fbSetResultados(frescos);
+  }).then(()=>recalcRanking()).then(()=>{
     renderPartidos();
     toast(`✓ ${eq}: ${gL}-${gV} cargado`,'success');
     document.getElementById('modal-cargares')?.remove();
